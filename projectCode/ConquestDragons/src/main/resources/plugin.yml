@@ -1,0 +1,65 @@
+# ===================================================
+# 🏰 ConquestDragons - plugin.yml
+# Metadata, command routing, and permission control.
+# Required by Paper/Bukkit for loading the plugin.
+# ===================================================
+
+name: ConquestDragons
+version: '1.0'
+main: org.conquestDragons.conquestDragons.ConquestDragons
+api-version: '1.21'
+author: Conquest Coder
+description: >
+  A PVE Dragon Boss Plugin
+
+# Optional Dependencies
+softdepend:
+  - PlaceholderAPI
+  - Vault
+  - WorldGuard
+
+# ===================================================
+# 🧭 Commands
+# Commands will be handled in CommandManager or dedicated classes.
+# ===================================================
+commands:
+  conquestdragons:
+    description: Root command for all conquestdragons features.
+    usage: /<command>
+    aliases: [clans, cclans]
+    permission: conquestdragons.user.basecommand
+
+# ===================================================
+# 🔐 Permissions
+# Basic structure to expand later as mechanics grow.
+# ===================================================
+permissions:
+  conquestdragons.user.basecommand:
+    description: Access to /clans and its subcommands.
+    default: true
+
+  conquestdragons.user.help:
+    description: Access to /clans help menu
+    default: true
+
+  conquestdragons.user.*:
+    description: Grants all user clan command access
+    default: true
+    children:
+      conquestdragons.user.basecommand: true
+      conquestdragons.user.help: true
+
+  conquestdragons.admin:
+    description: Base permission for admin features
+    default: op
+
+  conquestdragons.admin.reload:
+    description: Reload plugin config files
+    default: op
+
+  conquestdragons.admin.*:
+    description: Grants access to all admin commands
+    default: op
+    children:
+      conquestdragons.admin: true
+      conquestdragons.admin.reload: true

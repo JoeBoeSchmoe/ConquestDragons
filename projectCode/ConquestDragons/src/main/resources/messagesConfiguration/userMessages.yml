@@ -1,0 +1,57 @@
+# =========================================================
+# 💬 ConquestClans - userMessages.yml
+# Player-facing messages for help + usage hints.
+# Fully MiniMessage-compatible. Foundation-only.
+# =========================================================
+
+messages:
+  user:
+    # 💡 USER HELP USAGE (nudge)
+    help-usage:
+      text:
+        - "<gray>Use <yellow>/clans help</yellow> to get started."
+      hover: "<gray>See available commands and info.</gray>"
+      click: "/clans help"
+      clickType: "SUGGEST_COMMAND"
+      components:
+        - text: "<aqua>[Open Help]</aqua>"
+          hover: "<gray>Click to view help menu</gray>"
+          click: "/clans help"
+          clickType: "SUGGEST_COMMAND"
+      prefix: true
+      sound: { type: UI_BUTTON_CLICK, volume: 1.0, pitch: 1.0 }
+      particles: [ { type: ENCHANTMENT_TABLE, count: 4, offset: [0.2, 0.3, 0.2], speed: 0.01 } ]
+      bossbar: { text: "<yellow>Need Help?", color: "YELLOW", overlay: "PROGRESS", time: 60, progress: 0.5 }
+      actionbar: { text: "<gray>Try /clans help", duration: 60 }
+      title:
+        text: "<gold><bold>Clans Help</bold></gold>"
+        subtitle: "<gray>Use /clans help to get started."
+        timings: { fadeIn: 10, stay: 40, fadeOut: 20 }
+
+    # 📘 USER HELP (page)
+    help:
+      text:
+        - ""
+        - "<gray><bold>📘 ConquestClans Help</bold></gray>"
+        - ""
+      hover: "<gray>Click any command to autofill it.</gray>"
+      click: ""
+      clickType: "NONE"
+      components:
+        - text: " <white>/clans help <gray>- View this help menu"
+          hover: "<gray>Shows all player commands</gray>"
+          click: "/clans help"
+          clickType: "SUGGEST_COMMAND"
+          permission: "conquestclans.user.help"
+      prefix: true
+      sound: { type: UI_BUTTON_CLICK, volume: 1.0, pitch: 1.1 }
+      particles: [ { type: ENCHANTMENT_TABLE, count: 5, offset: [0.2, 0.3, 0.2], speed: 0.02 } ]
+      effects: [ { type: SPEED, amplifier: 0, duration: 60 } ]
+      bossbar: { text: "<aqua>User Help Page", color: "BLUE", overlay: "PROGRESS", time: 60, progress: 1.0 }
+      actionbar: { text: "<gray>You're viewing user commands.", duration: 60 }
+      title:
+        text: "<aqua><bold>Clans Help</bold></aqua>"
+        subtitle: "<gray>See available player commands."
+        timings: { fadeIn: 10, stay: 40, fadeOut: 20 }
+
+# End Of Config :D

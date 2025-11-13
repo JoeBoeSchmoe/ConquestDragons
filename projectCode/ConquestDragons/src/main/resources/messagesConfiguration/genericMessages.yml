@@ -1,0 +1,112 @@
+# =========================================================
+# 💬 ConquestClans - genericMessages.yml
+# Player-facing messages for basic commands and feedback.
+# Fully MiniMessage-compatible. Foundation-only (no unique flavor yet).
+# =========================================================
+
+messages:
+
+  # 🚫 MISSING PERMISSION
+  no-permission:
+    text: [ "<red>You don’t have permission to do that." ]
+    hover: "<gray>This action requires additional privileges.</gray>"
+    click: ""
+    clickType: "NONE"
+    components: [ ]
+    prefix: true
+    sound: { type: ENTITY_VILLAGER_NO, volume: 1.0, pitch: 0.9 }
+    particles: [ { type: SMOKE_NORMAL, count: 4, offset: [ 0.2, 0.3, 0.2 ], speed: 0.01 } ]
+    bossbar: { text: "<red>Permission Denied", color: "RED", overlay: "PROGRESS", time: 60, progress: 1.0 }
+    actionbar: { text: "<gray>You lack permission for this action.", duration: 60 }
+    title:
+      text: "<red><bold>Access Denied</bold></red>"
+      subtitle: "<gray>You don’t have permission to use that."
+      timings: { fadeIn: 10, stay: 40, fadeOut: 20 }
+
+  # ⛔ NOT A PLAYER (Console-only; filled with empty components for consistency)
+  not-player:
+    text: [ "<red>This command can only be used in-game." ]
+    hover: ""
+    click: ""
+    clickType: "NONE"
+    components: [ ]
+    prefix: true
+    sound: { type: "", volume: 0.0, pitch: 0.0 }
+    particles: [ ]
+    effects: [ ]
+    bossbar: { text: "", color: "", overlay: "", time: 0, progress: 0.0 }
+    actionbar: { text: "", duration: 0 }
+    title:
+      text: ""
+      subtitle: ""
+      timings: { fadeIn: 0, stay: 0, fadeOut: 0 }
+
+  # 🌀 UNKNOWN USER COMMAND
+  unknown-command:
+    text: [ "<red>Unknown command. Try <yellow>/clans help</yellow>." ]
+    hover: "<gray>This command wasn’t recognized.</gray>"
+    click: "/clans help"
+    clickType: "SUGGEST_COMMAND"
+    components: [ ]
+    prefix: true
+    sound: { type: ENTITY_VILLAGER_NO, volume: 1.0, pitch: 1.0 }
+    particles: [ { type: SMOKE_LARGE, count: 5, offset: [0.2, 0.4, 0.2], speed: 0.01 } ]
+    bossbar: { text: "<red>Unknown Command", color: "RED", overlay: "PROGRESS", time: 60, progress: 1.0 }
+    actionbar: { text: "<gray>Unknown command.", duration: 60 }
+    title:
+      text: "<red><bold>Unknown Command</bold></red>"
+      subtitle: "<gray>Try /clans help"
+      timings: { fadeIn: 10, stay: 40, fadeOut: 20 }
+
+  # ⏱️ COMMAND COOLDOWN
+  command-on-cooldown:
+    text: [ "<red>You’re doing that too fast. Please wait." ]
+    hover: "<gray>Cooldown in progress — try again shortly.</gray>"
+    click: ""
+    clickType: "NONE"
+    components: [ ]
+    prefix: true
+    sound: { type: BLOCK_NOTE_BLOCK_BASS, volume: 1.0, pitch: 0.9 }
+    particles: [ { type: SMOKE_NORMAL, count: 4, offset: [0.1, 0.2, 0.1], speed: 0.01 } ]
+    bossbar: { text: "<red>Cooldown Active", color: "RED", overlay: "PROGRESS", time: 60, progress: 1.0 }
+    actionbar: { text: "<gray>Please wait before using that again.", duration: 60 }
+    title:
+      text: "<red><bold>Slow Down</bold></red>"
+      subtitle: "<gray>Please wait before using that again."
+      timings: { fadeIn: 10, stay: 40, fadeOut: 20 }
+
+  # 🖱️ GUI BUTTON COOLDOWN
+  gui-button-cooldown:
+    text: [ "<yellow>Please wait a moment before clicking again." ]
+    hover: "<gray>GUI action cooldown is active.</gray>"
+    click: ""
+    clickType: "NONE"
+    components: [ ]
+    prefix: true
+    sound: { type: UI_BUTTON_CLICK, volume: 1.0, pitch: 1.0 }
+    particles: [ { type: ENCHANTMENT_TABLE, count: 4, offset: [0.2, 0.3, 0.2], speed: 0.01 } ]
+    bossbar: { text: "<yellow>GUI Cooldown", color: "YELLOW", overlay: "PROGRESS", time: 40, progress: 0.5 }
+    actionbar: { text: "<gray>Slow down — GUI on cooldown.", duration: 40 }
+    title:
+      text: "<gold><bold>Hold On</bold></gold>"
+      subtitle: "<gray>Please wait before the next click."
+      timings: { fadeIn: 10, stay: 30, fadeOut: 10 }
+
+  # 🤝 INTERACTION COOLDOWN
+  interaction-cooldown:
+    text: [ "<red>Interaction is on cooldown. Please wait." ]
+    hover: "<gray>You interacted too quickly — try again soon.</gray>"
+    click: ""
+    clickType: "NONE"
+    components: [ ]
+    prefix: true
+    sound: { type: BLOCK_NOTE_BLOCK_BASS, volume: 1.0, pitch: 0.95 }
+    particles: [ { type: SMOKE_NORMAL, count: 3, offset: [0.1, 0.2, 0.1], speed: 0.01 } ]
+    bossbar: { text: "<red>Interaction Cooldown", color: "RED", overlay: "PROGRESS", time: 40, progress: 0.9 }
+    actionbar: { text: "<gray>Please wait before interacting again.", duration: 40 }
+    title:
+      text: "<red><bold>Slow Down</bold></red>"
+      subtitle: "<gray>Interaction is cooling down."
+      timings: { fadeIn: 10, stay: 30, fadeOut: 10 }
+
+# End Of Config :D

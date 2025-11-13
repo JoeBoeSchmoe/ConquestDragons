@@ -1,0 +1,84 @@
+# =========================================================
+# 💬 ConquestClans - adminMessages.yml
+# Admin-facing messages for management commands and feedback.
+# Fully MiniMessage-compatible. Foundation-only.
+# =========================================================
+
+messages:
+  admin:
+    # 💡 ADMIN HELP USAGE (nudge)
+    help-usage:
+      text:
+        - "<gray>Use <yellow>/clans admin help</yellow> to view admin tools."
+      hover: "<gray>Access all admin commands and configuration tools.</gray>"
+      click: "/clans admin help"
+      clickType: "SUGGEST_COMMAND"
+      components:
+        - text: "<aqua>[Open Admin Help]</aqua>"
+          hover: "<gray>Click to view the admin command list</gray>"
+          click: "/clans admin help"
+          clickType: "SUGGEST_COMMAND"
+      prefix: true
+      sound: { type: UI_BUTTON_CLICK, volume: 1.0, pitch: 1.0 }
+      particles: [ { type: CRIT_MAGIC, count: 4, offset: [0.2, 0.3, 0.2], speed: 0.01 } ]
+      bossbar: { text: "<yellow>Admin Help Available", color: "YELLOW", overlay: "PROGRESS", time: 60, progress: 0.5 }
+      actionbar: { text: "<gray>Try /clans admin help", duration: 60 }
+      title:
+        text: "<gold><bold>Clans Admin Help</bold></gold>"
+        subtitle: "<gray>Use /clans admin help for tools."
+        timings: { fadeIn: 10, stay: 40, fadeOut: 20 }
+
+    # 🛠 ADMIN HELP (page)
+    help:
+      text:
+        - ""
+        - "<gray><bold>🛠 ConquestClans Admin Help</bold></gray>"
+        - ""
+      hover: "<gray>Click any command to autofill it.</gray>"
+      click: ""
+      clickType: "NONE"
+      components:
+        - text: " <white>/clans admin help <gray>- View this menu"
+          hover: "<gray>Shows all admin commands</gray>"
+          click: "/clans admin help"
+          clickType: "SUGGEST_COMMAND"
+          permission: "conquestclans.admin.help"
+
+        - text: " <white>/clans admin reload <gray>- Reload plugin configs"
+          hover: "<gray>Reload all configuration files</gray>"
+          click: "/clans admin reload"
+          clickType: "SUGGEST_COMMAND"
+          permission: "conquestclans.admin.reload"
+      prefix: true
+      sound: { type: UI_BUTTON_CLICK, volume: 1.0, pitch: 1.1 }
+      particles: [ { type: CRIT_MAGIC, count: 5, offset: [0.2, 0.3, 0.2], speed: 0.02 } ]
+      effects: [ { type: NIGHT_VISION, amplifier: 0, duration: 60 } ]
+      bossbar: { text: "<green>Admin Help Page", color: "GREEN", overlay: "PROGRESS", time: 60, progress: 1.0 }
+      actionbar: { text: "<gray>You're viewing admin commands.", duration: 60 }
+      title:
+        text: "<gold><bold>Clans Admin</bold></gold>"
+        subtitle: "<gray>View admin tools and commands."
+        timings: { fadeIn: 10, stay: 40, fadeOut: 20 }
+
+    # 🔄 ADMIN RELOAD SUCCESS
+    reload-success:
+      text:
+        - "<green>✅ ConquestClans reloaded successfully!</green>"
+      hover: "<gray>Click to view current configuration files.</gray>"
+      click: "/clans admin help"
+      clickType: "SUGGEST_COMMAND"
+      components:
+        - text: "<aqua>[View Admin Commands]</aqua>"
+          hover: "<gray>Return to admin command list</gray>"
+          click: "/clans admin help"
+          clickType: "SUGGEST_COMMAND"
+      prefix: true
+      sound: { type: ENTITY_PLAYER_LEVELUP, volume: 1.0, pitch: 1.4 }
+      particles: [ { type: FIREWORKS_SPARK, count: 8, offset: [0.3, 0.5, 0.3], speed: 0.03 } ]
+      bossbar: { text: "<green>ConquestClans Reloaded", color: "GREEN", overlay: "PROGRESS", time: 80, progress: 1.0 }
+      actionbar: { text: "<yellow>Reload complete — configurations reloaded!", duration: 60 }
+      title:
+        text: "<gold><bold>✅ Reload Complete</bold></gold>"
+        subtitle: "<gray>All configs refreshed successfully."
+        timings: { fadeIn: 10, stay: 40, fadeOut: 20 }
+# End Of Config :D

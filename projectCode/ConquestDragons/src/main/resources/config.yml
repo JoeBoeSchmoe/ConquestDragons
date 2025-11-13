@@ -1,0 +1,74 @@
+# ===================================================
+# ⚙️ ConquestClans - Configuration File
+# Base plugin options, chat styling, simple toggles, and safe defaults.
+# Reloadable at runtime using /conquestclans reload (if implemented).
+# ===================================================
+
+# ===================================================
+# 🎨 MiniMessage Formatting Guide (Used in names/lore)
+# ===================================================
+# ✅ Color Tags: <red>, <green>, <yellow>, <white>, <gray>
+# ✅ Text Styles: <bold>, <italic>, <underlined>, <strikethrough>, <obfuscated>
+# ✅ Gradients: <gradient:#ff0000:#ffff00>text</gradient>
+# ✅ Hex Colors: <#34ebcf>, <#ffaa00>, etc
+# ✅ Events: <hover:show_text:'hello'>hover me</hover>, <click:run_command:'/warp'>
+#
+# More formatting help: https://docs.advntr.dev/minimessage/format.html
+
+# ===================================================
+# 🎨 Global Message Styling
+# Appears before all plugin messages.
+# Supports MiniMessage formatting (colors, gradients, hex).
+# Can be toggled off per message in code via `prefix: false`.
+# ===================================================
+chat-prefix: "<dark_gray>[<gray>ConquestClans<dark_gray>]<gray> "
+
+# ===================================================
+# 🔧 Feature Toggles
+# High-level on/off switches for optional integrations.
+# These do nothing by themselves until features are implemented.
+# ===================================================
+integrations:
+  economy:
+    use-vault: true              # Enable Vault-based clan features (bank, dues, etc.)
+  placeholders:
+    use-placeholderapi: true     # Allow PlaceholderAPI placeholders if installed
+  worldguard:
+    enable-hook: true            # Reserved for region checks or flags later
+
+# ===================================================
+# 🧭 Command Aliases
+# Alternate names for the root /conquestclans command.
+# Should match plugin.yml definitions.
+# ===================================================
+command-aliases:
+  - conquestclans
+  - cclans
+  - clans
+
+# ===================================================
+# ⏱️ Cooldowns
+# Simple, general-purpose delays to prevent spam.
+# ===================================================
+cooldowns:
+  command-cooldown-ms: 250          # Delay before executing plugin-managed commands
+  gui-action-cooldown-ms: 150    # Prevents spam clicking GUIs too fast
+  interaction-cooldown-ms: 1000  # Delay between right-click interactions handled by the plugin
+
+# ===================================================
+# 🕒 GUI Settings
+# Auto-close timer for plugin GUIs (in seconds).
+# Set to 0 to disable.
+# ===================================================
+gui:
+  timeout-seconds: 60
+
+# ===================================================
+# 💾 Storage (Foundation)
+# Basic autosave interval. No storage backend is assumed yet.
+# ===================================================
+storage:
+  autosave-seconds: 180          # Interval in seconds for saving clan data to disk
+  save-on-shutdown: true         # Always attempt to persist on plugin/server stop
+
+# End of Base Config
