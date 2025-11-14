@@ -1,20 +1,20 @@
-package org.conquestDragons.conquestDragons.dragonHandler.keyHandler;
+package org.conquestDragons.conquestDragons.dragonHandler.keyHandler.difficultyKeys;
 
 import java.util.Locale;
 
-public enum DragonAttackSpeedKey {
-    TURTLE,
-    SLOW,
-    MEDIUM,
-    FAST,
-    WHYNOT; // Insane attack speed
+public enum DragonBarrierStrengthKey {
+    FRAGILE,
+    WEAK,
+    AVERAGE,
+    THICK,
+    IMPENETRABLE;
 
     // ---------------------------------------------------
-    // Parse from config safely
+    // Parse from config (case-insensitive, tolerates spaces and hyphens)
     // ---------------------------------------------------
-    public static DragonAttackSpeedKey fromConfig(String raw) {
+    public static DragonBarrierStrengthKey fromConfig(String raw) {
         if (raw == null) {
-            throw new IllegalArgumentException("DragonAttackSpeedKey string is null");
+            throw new IllegalArgumentException("DragonBarrierKey string is null");
         }
 
         String cleaned = raw
@@ -23,24 +23,25 @@ public enum DragonAttackSpeedKey {
                 .replace(' ', '_')
                 .toUpperCase(Locale.ROOT);
 
-        return DragonAttackSpeedKey.valueOf(cleaned);
+        return DragonBarrierStrengthKey.valueOf(cleaned);
     }
 
     // ---------------------------------------------------
-    // Stable, lowercase config ID
+    // Stable lowercase ID for saving to YAML/config
     // ---------------------------------------------------
     public String configId() {
         return name().toLowerCase(Locale.ROOT);
     }
 
     // ---------------------------------------------------
-    // Comparison helpers (optional but extremely useful)
+    // Comparison helpers
+    // FRAGILE < WEAK < AVERAGE < THICK < IMPENETRABLE
     // ---------------------------------------------------
-    public boolean isSlowerThan(DragonAttackSpeedKey other) {
+    public boolean isWeakerThan(DragonBarrierStrengthKey other) {
         return this.ordinal() < other.ordinal();
     }
 
-    public boolean isFasterThan(DragonAttackSpeedKey other) {
+    public boolean isStrongerThan(DragonBarrierStrengthKey other) {
         return this.ordinal() > other.ordinal();
     }
 }

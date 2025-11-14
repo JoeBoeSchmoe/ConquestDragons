@@ -1,0 +1,128 @@
+# ===================================================
+# 🐉 ConquestDragons - defaultDragonHealthColors.yml
+#
+# Defines health-percentage → color bands for:
+#  - Glow colors        (glow-profiles)
+#  - Bossbar colors     (bossbar-profiles)
+#
+# Percent is in [0,100], inclusive.
+# Colors are NamedTextColor / ChatColor names.
+# ===================================================
+
+glow-profiles:
+
+  SIMPLE:
+    id: "simple_glow"
+    display-name: "<green>Simple Health Glow</green>"
+
+    # Bands are evaluated top-to-bottom; first match wins.
+    bands:
+      - min-percent: 70
+        max-percent: 100
+        color: GREEN          # Healthy
+
+      - min-percent: 40
+        max-percent: 70
+        color: YELLOW         # Caution
+
+      - min-percent: 20
+        max-percent: 40
+        color: GOLD           # Dangerous
+
+      - min-percent: 0
+        max-percent: 20
+        color: RED            # Critical
+
+
+  DETAILED:
+    id: "detailed_glow"
+    display-name: "<dark_green>Detailed Health Glow</dark_green>"
+
+    # More granular gradient:
+    #  - 90–100%       → GREEN
+    #  - 75–90%        → DARK_GREEN
+    #  - 50–75%        → YELLOW
+    #  - 30–50%        → GOLD
+    #  - 10–30%        → RED
+    #  - 0–10%         → DARK_RED
+    bands:
+      - min-percent: 90
+        max-percent: 100
+        color: GREEN
+
+      - min-percent: 75
+        max-percent: 90
+        color: DARK_GREEN
+
+      - min-percent: 50
+        max-percent: 75
+        color: YELLOW
+
+      - min-percent: 30
+        max-percent: 50
+        color: GOLD
+
+      - min-percent: 10
+        max-percent: 30
+        color: RED
+
+      - min-percent: 0
+        max-percent: 10
+        color: DARK_RED
+
+
+
+bossbar-profiles:
+
+  SIMPLE:
+    id: "simple_bossbar"
+    display-name: "<green>Simple Bossbar Colors</green>"
+
+    # Example: bossbar stays clearer/brighter for players.
+    bands:
+      - min-percent: 70
+        max-percent: 100
+        color: GREEN          # Healthy
+
+      - min-percent: 40
+        max-percent: 70
+        color: YELLOW         # Caution
+
+      - min-percent: 20
+        max-percent: 40
+        color: GOLD           # Dangerous
+
+      - min-percent: 0
+        max-percent: 20
+        color: RED            # Critical
+
+
+  DETAILED:
+    id: "detailed_bossbar"
+    display-name: "<dark_purple>Detailed Bossbar Colors</dark_purple>"
+
+    # You can tune this differently from glow if you want.
+    bands:
+      - min-percent: 90
+        max-percent: 100
+        color: GREEN
+
+      - min-percent: 75
+        max-percent: 90
+        color: DARK_GREEN
+
+      - min-percent: 50
+        max-percent: 75
+        color: YELLOW
+
+      - min-percent: 30
+        max-percent: 50
+        color: GOLD
+
+      - min-percent: 10
+        max-percent: 30
+        color: RED
+
+      - min-percent: 0
+        max-percent: 10
+        color: DARK_RED

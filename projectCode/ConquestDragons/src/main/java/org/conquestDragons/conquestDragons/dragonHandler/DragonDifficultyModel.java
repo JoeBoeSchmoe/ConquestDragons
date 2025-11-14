@@ -1,6 +1,8 @@
 package org.conquestDragons.conquestDragons.dragonHandler;
 
 import org.conquestDragons.conquestDragons.dragonHandler.keyHandler.*;
+import org.conquestDragons.conquestDragons.dragonHandler.keyHandler.difficultyKeys.*;
+
 import java.util.Objects;
 import java.util.Locale;
 
@@ -12,14 +14,14 @@ import java.util.Locale;
  *  - All tuning enums that describe how this difficulty behaves
  *
  * Loaded from:
- *  - defaultDragonDifficulties.yml   (for preset EASY/HARD/etc.)
- *  - dragon-specific YAML            (for CUSTOM difficulties)
+ *  - defaultDifficultyValues.yml   (for preset EASY/HARD/etc.)
+ *  - dragon-specific YAML          (for CUSTOM difficulties)
  */
 public record DragonDifficultyModel(
 
         String id,                         // config key: "easy", "hard", "custom_shadowlord"
         String displayName,                // MiniMessage: "<red>Hard</red>"
-        DragonDifficultyKey difficultyKey, // EASY/MEDIUM/HARD/BEDROCK/CUSTOM
+        DragonDifficultyKey difficultyKey, // EASY / MEDIUM / HARD / BEDROCK / CUSTOM
 
         // ---- Full tuning set ----
         DragonSpeedKey speedKey,
@@ -27,7 +29,8 @@ public record DragonDifficultyModel(
         DragonScaleStrength scaleStrengthKey,
         DragonBarrierStrengthKey barrierKey,
         DragonSummonSpeedKey summonSpeedKey,
-        DragonSummonStrengthKey summonStrengthKey
+        DragonSummonStrengthKey summonStrengthKey,
+        DragonAIKey aiKey                 // NEW
 
 ) {
 
@@ -42,6 +45,7 @@ public record DragonDifficultyModel(
         Objects.requireNonNull(barrierKey, "barrierKey");
         Objects.requireNonNull(summonSpeedKey, "summonSpeedKey");
         Objects.requireNonNull(summonStrengthKey, "summonStrengthKey");
+        Objects.requireNonNull(aiKey, "aiKey");
     }
 
     // ---------------------------------------------------
@@ -75,7 +79,8 @@ public record DragonDifficultyModel(
                 this.scaleStrengthKey,
                 this.barrierKey,
                 this.summonSpeedKey,
-                this.summonStrengthKey
+                this.summonStrengthKey,
+                this.aiKey
         );
     }
 
@@ -89,7 +94,8 @@ public record DragonDifficultyModel(
                 this.scaleStrengthKey,
                 this.barrierKey,
                 this.summonSpeedKey,
-                this.summonStrengthKey
+                this.summonStrengthKey,
+                this.aiKey
         );
     }
 }

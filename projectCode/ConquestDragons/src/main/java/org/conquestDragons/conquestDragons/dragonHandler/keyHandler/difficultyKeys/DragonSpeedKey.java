@@ -1,4 +1,4 @@
-package org.conquestDragons.conquestDragons.dragonHandler.keyHandler;
+package org.conquestDragons.conquestDragons.dragonHandler.keyHandler.difficultyKeys;
 
 import java.util.Locale;
 

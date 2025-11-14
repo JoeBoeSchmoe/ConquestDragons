@@ -3,6 +3,8 @@ package org.conquestDragons.conquestDragons.configurationHandler;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.conquestDragons.conquestDragons.ConquestDragons;
 import org.conquestDragons.conquestDragons.configurationHandler.configurationFiles.ConfigFile;
+import org.conquestDragons.conquestDragons.configurationHandler.configurationFiles.defaultValueFiles.DefaultDifficultyValuesFile;
+import org.conquestDragons.conquestDragons.configurationHandler.configurationFiles.defaultValueFiles.DefaultDragonHealthColorsFile;
 import org.conquestDragons.conquestDragons.configurationHandler.configurationFiles.integrationFiles.PlaceholderAPIManager;
 import org.conquestDragons.conquestDragons.configurationHandler.configurationFiles.integrationFiles.VaultManager;
 import org.conquestDragons.conquestDragons.configurationHandler.configurationFiles.integrationFiles.WorldGuardManager;
@@ -49,6 +51,10 @@ public class ConfigurationManager {
             setupVault();
             setupPlaceholderAPI();
             setupWorldGuard();
+
+            // Default Values
+            DefaultDifficultyValuesFile.load();
+            DefaultDragonHealthColorsFile.load();
 
             log.info("✅  Configuration loading complete.");
         } catch (Exception e) {

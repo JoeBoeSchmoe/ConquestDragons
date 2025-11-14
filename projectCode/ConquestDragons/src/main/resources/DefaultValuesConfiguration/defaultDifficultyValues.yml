@@ -1,0 +1,103 @@
+# ===================================================
+# 🐉 ConquestDragons - defaultDifficultyValues.yml
+# Difficulty presets mapped to DragonDifficultyModel.
+# ===================================================
+
+difficulties:
+
+  EASY:
+    id: "easy"
+    display-name: "<green>Easy</green>"
+
+    # -----------------------
+    # SPEED / ATTACK SPEED
+    # -----------------------
+    speed: SLOW                 # DragonSpeedKey
+    attack-speed: SLOW          # DragonAttackSpeedKey
+    summon-speed: SLOW          # DragonSummonSpeedKey
+
+    # -----------------------
+    # DEFENSE / RESISTANCE
+    # -----------------------
+    scale-strength: WEAK        # DragonScaleStrength
+    barrier-strength: WEAK      # DragonBarrierStrengthKey
+    summon-strength: WEAK       # DragonSummonStrengthKey
+
+    # -----------------------
+    # AI INTELLIGENCE
+    # -----------------------
+    ai: AVERAGE                 # DragonAIKey
+
+
+  MEDIUM:
+    id: "medium"
+    display-name: "<yellow>Normal</yellow>"
+
+    # -----------------------
+    # SPEED / ATTACK SPEED
+    # -----------------------
+    speed: MEDIUM
+    attack-speed: MEDIUM
+    summon-speed: MEDIUM
+
+    # -----------------------
+    # DEFENSE / RESISTANCE
+    # -----------------------
+    scale-strength: AVERAGE
+    barrier-strength: AVERAGE
+    summon-strength: AVERAGE
+
+    # -----------------------
+    # AI INTELLIGENCE
+    # -----------------------
+    ai: SMART
+
+
+  HARD:
+    id: "hard"
+    display-name: "<red>Hard</red>"
+
+    # -----------------------
+    # SPEED / ATTACK SPEED
+    # -----------------------
+    speed: FAST
+    attack-speed: FAST
+    summon-speed: FAST
+
+    # -----------------------
+    # DEFENSE / RESISTANCE
+    # -----------------------
+    scale-strength: THICK
+    barrier-strength: THICK
+    summon-strength: STRONG
+
+    # -----------------------
+    # AI INTELLIGENCE
+    # -----------------------
+    ai: ADVANCED
+
+
+  BEDROCK:
+    id: "bedrock"
+    display-name: "<dark_purple>BEDROCK</dark_purple>"
+
+    # -----------------------
+    # SPEED / ATTACK SPEED
+    # -----------------------
+    speed: WHYNOT
+    attack-speed: WHYNOT
+    summon-speed: WHYNOT
+
+    # -----------------------
+    # DEFENSE / RESISTANCE
+    # -----------------------
+    scale-strength: IMPENETRABLE
+    barrier-strength: IMPENETRABLE
+    summon-strength: OVERWHELMING
+
+    # -----------------------
+    # AI INTELLIGENCE
+    # -----------------------
+    ai: GENIUS
+
+# End Of Config :D

@@ -55,7 +55,7 @@ public final class WorldGuardManager {
 
         wgVersion = wg.getDescription().getVersion();
         active = true;
-        log.info("🛡️ WorldGuard hooked. Version: " + wgVersion);
+        log.info("🛡️  WorldGuard hooked. Version: " + wgVersion);
     }
 
     /**
@@ -69,7 +69,7 @@ public final class WorldGuardManager {
         // Only attempt if we're either active or at least the plugin exists (for early boot calls).
         Plugin wg = Bukkit.getPluginManager().getPlugin("WorldGuard");
         if (wg == null) {
-            log.info("ℹ️ Skipping WorldGuard flag registration (plugin not found).");
+            log.info("ℹ️  Skipping WorldGuard flag registration (plugin not found).");
             return;
         }
 

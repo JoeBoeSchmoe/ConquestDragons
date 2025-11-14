@@ -1,21 +1,20 @@
-package org.conquestDragons.conquestDragons.dragonHandler.keyHandler;
+package org.conquestDragons.conquestDragons.dragonHandler.keyHandler.difficultyKeys;
 
 import java.util.Locale;
 
-public enum DragonScaleStrength {
-    FRAGILE,
-    WEAK,
+public enum DragonAIKey {
+    DUMB,
     AVERAGE,
-    THICK,
-    IMPENETRABLE;
+    SMART,
+    ADVANCED,
+    GENIUS;
 
     // ---------------------------------------------------
-    // Parse from YAML / config safely
-    // Accepts: "fragile", " Fragile ", "FRAGILE", "fra-gile"
+    // Parse from config (case-insensitive, hyphens/spaces allowed)
     // ---------------------------------------------------
-    public static DragonScaleStrength fromConfig(String raw) {
+    public static DragonAIKey fromConfig(String raw) {
         if (raw == null) {
-            throw new IllegalArgumentException("DragonScaleStrength string is null");
+            throw new IllegalArgumentException("DragonAIKey string is null");
         }
 
         String cleaned = raw
@@ -24,25 +23,25 @@ public enum DragonScaleStrength {
                 .replace(' ', '_')
                 .toUpperCase(Locale.ROOT);
 
-        return DragonScaleStrength.valueOf(cleaned);
+        return DragonAIKey.valueOf(cleaned);
     }
 
     // ---------------------------------------------------
-    // Stable lowercase config ID
+    // Stable lowercase ID for saving to YAML/config
     // ---------------------------------------------------
     public String configId() {
         return name().toLowerCase(Locale.ROOT);
     }
 
     // ---------------------------------------------------
-    // Comparison helpers (ordinal-based)
-    // FRAGILE < WEAK < AVERAGE < THICK < IMPENETRABLE
+    // Comparison helpers
+    // DUMB < AVERAGE < SMART < ADVANCED < GENIUS
     // ---------------------------------------------------
-    public boolean isWeakerThan(DragonScaleStrength other) {
+    public boolean isSimplerThan(DragonAIKey other) {
         return this.ordinal() < other.ordinal();
     }
 
-    public boolean isStrongerThan(DragonScaleStrength other) {
+    public boolean isMoreComplexThan(DragonAIKey other) {
         return this.ordinal() > other.ordinal();
     }
 }

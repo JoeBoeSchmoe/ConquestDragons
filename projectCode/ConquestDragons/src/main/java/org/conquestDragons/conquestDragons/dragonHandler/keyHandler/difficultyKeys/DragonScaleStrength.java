@@ -1,21 +1,21 @@
-package org.conquestDragons.conquestDragons.dragonHandler.keyHandler;
+package org.conquestDragons.conquestDragons.dragonHandler.keyHandler.difficultyKeys;
 
 import java.util.Locale;
 
-public enum DragonSummonStrengthKey {
+public enum DragonScaleStrength {
     FRAGILE,
     WEAK,
     AVERAGE,
-    STRONG,
-    OVERWHELMING;
+    THICK,
+    IMPENETRABLE;
 
     // ---------------------------------------------------
     // Parse from YAML / config safely
     // Accepts: "fragile", " Fragile ", "FRAGILE", "fra-gile"
     // ---------------------------------------------------
-    public static DragonSummonStrengthKey fromConfig(String raw) {
+    public static DragonScaleStrength fromConfig(String raw) {
         if (raw == null) {
-            throw new IllegalArgumentException("DragonSummonStrengthKey string is null");
+            throw new IllegalArgumentException("DragonScaleStrength string is null");
         }
 
         String cleaned = raw
@@ -24,7 +24,7 @@ public enum DragonSummonStrengthKey {
                 .replace(' ', '_')
                 .toUpperCase(Locale.ROOT);
 
-        return DragonSummonStrengthKey.valueOf(cleaned);
+        return DragonScaleStrength.valueOf(cleaned);
     }
 
     // ---------------------------------------------------
@@ -36,13 +36,13 @@ public enum DragonSummonStrengthKey {
 
     // ---------------------------------------------------
     // Comparison helpers (ordinal-based)
-    // FRAGILE < WEAK < AVERAGE < STRONG < OVERWHELMING
+    // FRAGILE < WEAK < AVERAGE < THICK < IMPENETRABLE
     // ---------------------------------------------------
-    public boolean isWeakerThan(DragonSummonStrengthKey other) {
+    public boolean isWeakerThan(DragonScaleStrength other) {
         return this.ordinal() < other.ordinal();
     }
 
-    public boolean isStrongerThan(DragonSummonStrengthKey other) {
+    public boolean isStrongerThan(DragonScaleStrength other) {
         return this.ordinal() > other.ordinal();
     }
 }
