@@ -23,9 +23,9 @@ public final class UserMessagesFile {
     private static final Logger log = plugin.getLogger();
 
     // JAR resource path (inside your src/main/resources)
-    private static final String RESOURCE_PATH = "messagesConfiguration/userMessages.yml";
+    private static final String RESOURCE_PATH = "MessagesConfiguration/userMessages.yml";
     // Disk-relative path (under the plugin's data folder)
-    private static final String DATA_RELATIVE_PATH = "messagesConfiguration/userMessages.yml";
+    private static final String DATA_RELATIVE_PATH = "MessagesConfiguration/userMessages.yml";
 
     private static YamlConfiguration yaml;
     private static File file;

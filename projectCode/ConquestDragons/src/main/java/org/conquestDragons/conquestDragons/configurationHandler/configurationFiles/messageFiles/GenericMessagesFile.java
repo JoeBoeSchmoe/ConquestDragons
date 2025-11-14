@@ -23,9 +23,9 @@ public final class GenericMessagesFile {
     private static final Logger log = plugin.getLogger();
 
     // Path inside the JAR (src/main/resources)
-    private static final String RESOURCE_PATH = "messagesConfiguration/genericMessages.yml";
+    private static final String RESOURCE_PATH = "MessagesConfiguration/genericMessages.yml";
     // Path inside the plugin’s data folder
-    private static final String DATA_RELATIVE_PATH = "messagesConfiguration/genericMessages.yml";
+    private static final String DATA_RELATIVE_PATH = "MessagesConfiguration/genericMessages.yml";
 
     private static YamlConfiguration yaml;
     private static File file;
