@@ -9,7 +9,7 @@ import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
-import org.conquestClans.conquestclans.ConquestClans;
+import org.conquestDragons.conquestDragons.ConquestDragons;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -19,15 +19,15 @@ import java.util.Map;
 import java.util.logging.Logger;
 
 /**
- * 🧩 PlaceHolderAPIManager (ConquestClans)
+ * 🧩 PlaceHolderAPIManager (ConquestDragons)
  * - Config-aware initialization
  * - Graceful fallback if PAPI is not installed/enabled
- * - Minimal PlaceholderExpansion registered under "ConquestClans" (future-ready)
+ * - Minimal PlaceholderExpansion registered under "ConquestDragons" (future-ready)
  * - MiniMessage parsing utilities + simple {key} placeholder replacement
  */
 public final class PlaceholderAPIManager {
 
-    private static final ConquestClans plugin = ConquestClans.getInstance();
+    private static final ConquestDragons plugin = ConquestDragons.getInstance();
     private static final Logger log = plugin.getLogger();
 
     private static boolean requestedEnabled = false;
@@ -67,7 +67,7 @@ public final class PlaceholderAPIManager {
         new PlaceholderExpansion() {
             @Override
             public @NotNull String getIdentifier() {
-                return "ConquestClans";
+                return "ConquestDragons";
             }
 
             @Override
@@ -93,13 +93,12 @@ public final class PlaceholderAPIManager {
             /**
              * Placeholder entrypoint.
              * Examples to add later:
-             *   %ConquestClans:clan.name%
-             *   %ConquestClans:clan.member_count%
+             *   %ConquestDragons:dragon.name%
              */
             @Override
             public @Nullable String onPlaceholderRequest(Player player, @NotNull String identifier) {
                 // Foundation-only: return null for unknown keys.
-                // Add actual keys when clan features are implemented.
+                // Add actual keys when dragon features are implemented.
                 // Example scaffold:
                 // if (identifier.equalsIgnoreCase("clan.name")) { ... }
                 // if (identifier.equalsIgnoreCase("clan.member_count")) { ... }
@@ -109,7 +108,7 @@ public final class PlaceholderAPIManager {
 
         papiPlugin = papi;
         usingPapi = true;
-        log.info("📘  PlaceholderAPI hooked. Version: " + found.getDescription().getVersion() + " | Expansion: ConquestClans");
+        log.info("📘  PlaceholderAPI hooked. Version: " + found.getDescription().getVersion() + " | Expansion: ConquestDragons");
     }
 
     /**

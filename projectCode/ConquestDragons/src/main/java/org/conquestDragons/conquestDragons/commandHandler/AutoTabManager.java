@@ -2,8 +2,8 @@ package org.conquestDragons.conquestDragons.commandHandler;
 
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
-import org.conquestClans.conquestclans.commandHandler.permissionHandler.PermissionManager;
-import org.conquestClans.conquestclans.commandHandler.permissionHandler.PermissionModels;
+import org.conquestDragons.conquestDragons.commandHandler.permissionHandler.PermissionManager;
+import org.conquestDragons.conquestDragons.commandHandler.permissionHandler.PermissionModels;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
@@ -13,7 +13,7 @@ import java.util.Locale;
 
 /**
  * 🔄 AutoTabManager
- * Minimal tab completion for ConquestClans commands.
+ * Minimal tab completion for ConquestDragons commands.
  *
  * Matches the plugin.yml commands and permissions structure.
  */
@@ -38,7 +38,7 @@ public class AutoTabManager {
     public static List<String> getSuggestions(@NotNull CommandSender sender, @NotNull String[] args) {
         if (!(sender instanceof Player)) return Collections.emptyList();
 
-        // /clans <sub>
+        // /dragons <sub>
         if (args.length == 1) {
             List<String> suggestions = new ArrayList<>(USER_SUBCOMMANDS);
 
@@ -51,7 +51,7 @@ public class AutoTabManager {
             return partialMatch(args[0], suggestions);
         }
 
-        // /clans admin <sub>
+        // /dragons admin <sub>
         if (args.length == 2 && args[0].equalsIgnoreCase(ADMIN_ROOT)) {
             if (!PermissionManager.has(sender, PermissionModels.ADMIN_BASE) &&
                     !PermissionManager.has(sender, PermissionModels.ADMIN_ALL)) {

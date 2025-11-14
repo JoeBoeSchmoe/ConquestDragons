@@ -1,7 +1,6 @@
 package org.conquestDragons.conquestDragons.cooldownHandler;
 
-
-import org.conquestClans.conquestclans.ConquestClans;
+import org.conquestDragons.conquestDragons.ConquestDragons;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -68,7 +67,7 @@ public final class InteractionCooldownManager {
      * @return time in ms
      */
     private static long getConfiguredCooldownMs() {
-        return Math.max(0, ConquestClans.getInstance()
+        return Math.max(0, ConquestDragons.getInstance()
                 .getConfigurationManager()
                 .getConfig()
                 .getLong("cooldowns.interaction-cooldown-ms", 3000));

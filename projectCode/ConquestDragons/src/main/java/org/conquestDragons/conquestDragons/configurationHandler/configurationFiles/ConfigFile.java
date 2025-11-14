@@ -2,7 +2,7 @@ package org.conquestDragons.conquestDragons.configurationHandler.configurationFi
 
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
-import org.conquestClans.conquestclans.ConquestClans;
+import org.conquestDragons.conquestDragons.ConquestDragons;
 
 import java.io.File;
 import java.io.InputStream;
@@ -20,7 +20,7 @@ import java.util.logging.Logger;
  */
 public final class ConfigFile {
 
-    private static final ConquestClans plugin = ConquestClans.getInstance();
+    private static final ConquestDragons plugin = ConquestDragons.getInstance();
     private static final Logger log = plugin.getLogger();
 
     private static YamlConfiguration yaml;

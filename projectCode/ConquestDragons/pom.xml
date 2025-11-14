@@ -9,25 +9,107 @@
     <version>1.0</version>
     <packaging>jar</packaging>
 
-    <name>conquestdragons</name>
+    <name>ConquestDragons-1.0</name>
 
     <properties>
         <java.version>21</java.version>
+        <maven.compiler.release>${java.version}</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <paper.version>1.21.4-R0.1-SNAPSHOT</paper.version>
+        <vault.version>1.7</vault.version>
+        <papi.version>2.11.5</papi.version>
+        <worldedit.version>7.2.16</worldedit.version>
+        <worldguard.version>7.0.9</worldguard.version>
     </properties>
 
+    <!-- Repos for Paper + integrations -->
+    <repositories>
+        <repository>
+            <id>papermc</id>
+            <url>https://repo.papermc.io/repository/maven-public/</url>
+        </repository>
+        <repository>
+            <id>vault-repo</id>
+            <url>https://nexus.hc.to/content/repositories/pub_releases/</url>
+        </repository>
+        <repository>
+            <id>placeholderapi-repo</id>
+            <url>https://repo.extendedclip.com/content/repositories/placeholderapi/</url>
+        </repository>
+        <repository>
+            <id>enginehub-repo</id>
+            <url>https://maven.enginehub.org/repo/</url>
+        </repository>
+    </repositories>
+
+    <dependencies>
+        <!-- ✅ Paper API -->
+        <dependency>
+            <groupId>io.papermc.paper</groupId>
+            <artifactId>paper-api</artifactId>
+            <version>${paper.version}</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
+            <version>3.19.0</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <!-- 💰 Vault API -->
+        <dependency>
+            <groupId>net.milkbowl.vault</groupId>
+            <artifactId>VaultAPI</artifactId>
+            <version>${vault.version}</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <!-- 📘 PlaceholderAPI -->
+        <dependency>
+            <groupId>me.clip</groupId>
+            <artifactId>placeholderapi</artifactId>
+            <version>${papi.version}</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <!-- 🛡️ WorldGuard + WorldEdit -->
+        <dependency>
+            <groupId>com.sk89q.worldedit</groupId>
+            <artifactId>worldedit-bukkit</artifactId>
+            <version>${worldedit.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.sk89q.worldguard</groupId>
+            <artifactId>worldguard-bukkit</artifactId>
+            <version>${worldguard.version}</version>
+            <scope>provided</scope>
+        </dependency>
+    </dependencies>
+
     <build>
-        <defaultGoal>clean package</defaultGoal>
+        <finalName>ConquestDragons-1.0</finalName>
+
+        <resources>
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>false</filtering>
+            </resource>
+        </resources>
+
         <plugins>
+            <!-- 🔧 Compiler -->
             <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.13.0</version>
+                <version>3.11.0</version>
                 <configuration>
-                    <source>${java.version}</source>
-                    <target>${java.version}</target>
+                    <release>${java.version}</release>
                 </configuration>
             </plugin>
+
+            <!-- 📦 Shade -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>
@@ -38,31 +120,13 @@
                         <goals>
                             <goal>shade</goal>
                         </goals>
+                        <configuration>
+                            <minimizeJar>false</minimizeJar>
+                        </configuration>
                     </execution>
                 </executions>
             </plugin>
         </plugins>
-        <resources>
-            <resource>
-                <directory>src/main/resources</directory>
-                <filtering>true</filtering>
-            </resource>
-        </resources>
     </build>
 
-    <repositories>
-        <repository>
-            <id>papermc-repo</id>
-            <url>https://repo.papermc.io/repository/maven-public/</url>
-        </repository>
-    </repositories>
-
-    <dependencies>
-        <dependency>
-            <groupId>io.papermc.paper</groupId>
-            <artifactId>paper-api</artifactId>
-            <version>1.21.8-R0.1-SNAPSHOT</version>
-            <scope>provided</scope>
-        </dependency>
-    </dependencies>
 </project>

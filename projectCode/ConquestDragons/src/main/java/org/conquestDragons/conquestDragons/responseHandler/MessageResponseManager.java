@@ -5,15 +5,15 @@ import net.kyori.adventure.text.event.ClickEvent;
 import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
-import org.conquestClans.conquestclans.ConquestClans;
-import org.conquestClans.conquestclans.configurationHandler.configurationFiles.integrationFiles.PlaceholderAPIManager;
-import org.conquestClans.conquestclans.configurationHandler.configurationFiles.messageFiles.AdminMessagesFile;
-import org.conquestClans.conquestclans.configurationHandler.configurationFiles.messageFiles.GenericMessagesFile;
-import org.conquestClans.conquestclans.configurationHandler.configurationFiles.messageFiles.UserMessagesFile;
-import org.conquestClans.conquestclans.responseHandler.effectHandler.*;
-import org.conquestClans.conquestclans.responseHandler.messageModels.AdminMessageModels;
-import org.conquestClans.conquestclans.responseHandler.messageModels.GenericMessageModels;
-import org.conquestClans.conquestclans.responseHandler.messageModels.UserMessageModels;
+import org.conquestDragons.conquestDragons.ConquestDragons;
+import org.conquestDragons.conquestDragons.configurationHandler.configurationFiles.integrationFiles.PlaceholderAPIManager;
+import org.conquestDragons.conquestDragons.configurationHandler.configurationFiles.messageFiles.AdminMessagesFile;
+import org.conquestDragons.conquestDragons.configurationHandler.configurationFiles.messageFiles.GenericMessagesFile;
+import org.conquestDragons.conquestDragons.configurationHandler.configurationFiles.messageFiles.UserMessagesFile;
+import org.conquestDragons.conquestDragons.responseHandler.effectHandler.*;
+import org.conquestDragons.conquestDragons.responseHandler.messageModels.AdminMessageModels;
+import org.conquestDragons.conquestDragons.responseHandler.messageModels.GenericMessageModels;
+import org.conquestDragons.conquestDragons.responseHandler.messageModels.UserMessageModels;
 
 import java.util.*;
 import java.util.logging.Logger;
@@ -29,7 +29,7 @@ import java.util.logging.Logger;
  */
 public class MessageResponseManager {
 
-    private static final Logger log = ConquestClans.getInstance().getLogger();
+    private static final Logger log = ConquestDragons.getInstance().getLogger();
     private static String cachedPrefix = null;
 
     // ------------------ Generic Message Senders (Admin) ------------------
@@ -238,10 +238,10 @@ public class MessageResponseManager {
 
     private static String getPrefix() {
         if (cachedPrefix == null) {
-            cachedPrefix = ConquestClans.getInstance()
+            cachedPrefix = ConquestDragons.getInstance()
                     .getConfigurationManager()
                     .getConfig()
-                    .getString("chat-prefix", "<gray>[ConquestClans]</gray> ");
+                    .getString("chat-prefix", "<gray>[ConquestDragons]</gray> ");
         }
         return cachedPrefix;
     }

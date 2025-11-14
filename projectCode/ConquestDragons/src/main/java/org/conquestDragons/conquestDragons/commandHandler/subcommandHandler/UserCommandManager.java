@@ -1,15 +1,15 @@
 package org.conquestDragons.conquestDragons.commandHandler.subcommandHandler;
 
 import org.bukkit.entity.Player;
-import org.conquestClans.conquestclans.commandHandler.permissionHandler.PermissionManager;
-import org.conquestClans.conquestclans.commandHandler.permissionHandler.PermissionModels;
-import org.conquestClans.conquestclans.responseHandler.MessageResponseManager;
-import org.conquestClans.conquestclans.responseHandler.messageModels.GenericMessageModels;
-import org.conquestClans.conquestclans.responseHandler.messageModels.UserMessageModels;
+import org.conquestDragons.conquestDragons.commandHandler.permissionHandler.PermissionManager;
+import org.conquestDragons.conquestDragons.commandHandler.permissionHandler.PermissionModels;
+import org.conquestDragons.conquestDragons.responseHandler.MessageResponseManager;
+import org.conquestDragons.conquestDragons.responseHandler.messageModels.GenericMessageModels;
+import org.conquestDragons.conquestDragons.responseHandler.messageModels.UserMessageModels;
 
 /**
  * 🎮 UserCommandManager
- * Handles all non-admin /clans subcommands with a switch-based dispatcher.
+ * Handles all non-admin /dragons subcommands with a switch-based dispatcher.
  */
 public class UserCommandManager {
 

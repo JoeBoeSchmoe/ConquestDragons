@@ -4,7 +4,7 @@ import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
-import org.conquestClans.conquestclans.ConquestClans;
+import org.conquestDragons.conquestDragons.ConquestDragons;
 
 import java.util.List;
 import java.util.Map;
@@ -16,7 +16,7 @@ import java.util.logging.Logger;
  */
 public class EffectResponseManager {
 
-    private static final Logger log = ConquestClans.getInstance().getLogger();
+    private static final Logger log = ConquestDragons.getInstance().getLogger();
 
     public static void send(Player player, ConfigurationSection section, Map<String, String> placeholders) {
         if (player == null || section == null) return;
@@ -29,8 +29,8 @@ public class EffectResponseManager {
 
                 int amplifier = parseInt(rawEffect.get("amplifier"), 0);
                 int duration = parseInt(rawEffect.get("duration"), 100);
-                boolean ambient = parseBoolean(rawEffect.get("ambient"), true);
-                boolean showParticles = parseBoolean(rawEffect.get("particles"), true);
+                boolean ambient = parseBoolean(rawEffect.get("ambient"));
+                boolean showParticles = parseBoolean(rawEffect.get("particles"));
 
                 PotionEffectType type = PotionEffectType.getByName(typeRaw.toUpperCase());
                 if (type == null) {
@@ -59,14 +59,14 @@ public class EffectResponseManager {
         }
     }
 
-    private static boolean parseBoolean(Object obj, boolean defaultValue) {
+    private static boolean parseBoolean(Object obj) {
         if (obj instanceof Boolean bool) {
             return bool;
         }
         try {
             return Boolean.parseBoolean(obj.toString());
         } catch (Exception ignored) {
-            return defaultValue;
+            return true;
         }
     }
 

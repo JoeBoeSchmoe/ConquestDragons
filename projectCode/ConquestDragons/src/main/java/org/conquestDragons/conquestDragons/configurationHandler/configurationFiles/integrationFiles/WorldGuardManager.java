@@ -2,7 +2,7 @@ package org.conquestDragons.conquestDragons.configurationHandler.configurationFi
 
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.Plugin;
-import org.conquestClans.conquestclans.ConquestClans;
+import org.conquestDragons.conquestDragons.ConquestDragons;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
@@ -21,7 +21,7 @@ import java.util.logging.Logger;
  */
 public final class WorldGuardManager {
 
-    private static final ConquestClans plugin = ConquestClans.getInstance();
+    private static final ConquestDragons plugin = ConquestDragons.getInstance();
     private static final Logger log = plugin.getLogger();
 
     private static boolean requestedEnabled = false;
@@ -63,8 +63,7 @@ public final class WorldGuardManager {
      * Safe to call even if WG isn't present (it will no-op).
      *
      * Example built-ins you can use or remove later:
-     *  - clans-force-pvp
-     *  - clans-handle-death
+     *  - dragons-force-pvp
      */
     public static void registerFlagsEarly() {
         // Only attempt if we're either active or at least the plugin exists (for early boot calls).
@@ -75,8 +74,8 @@ public final class WorldGuardManager {
         }
 
         // Try to register a couple of placeholder flags for future features.
-        registerCustomStateFlag("clans-force-pvp", false);
-        registerCustomStateFlag("clans-handle-death", false);
+        registerCustomStateFlag("dragons-force-pvp", false);
+        registerCustomStateFlag("dragons-handle-death", false);
     }
 
     /**

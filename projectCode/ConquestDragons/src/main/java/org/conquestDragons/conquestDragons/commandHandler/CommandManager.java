@@ -5,13 +5,13 @@ import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
-import org.conquestClans.conquestclans.commandHandler.subcommandHandler.AdminCommandManager;
-import org.conquestClans.conquestclans.commandHandler.subcommandHandler.UserCommandManager;
-import org.conquestClans.conquestclans.cooldownHandler.CommandCooldownManager;
-import org.conquestClans.conquestclans.responseHandler.MessageResponseManager;
-import org.conquestClans.conquestclans.responseHandler.messageModels.AdminMessageModels;
-import org.conquestClans.conquestclans.responseHandler.messageModels.GenericMessageModels;
-import org.conquestClans.conquestclans.responseHandler.messageModels.UserMessageModels;
+import org.conquestDragons.conquestDragons.commandHandler.subcommandHandler.AdminCommandManager;
+import org.conquestDragons.conquestDragons.commandHandler.subcommandHandler.UserCommandManager;
+import org.conquestDragons.conquestDragons.cooldownHandler.CommandCooldownManager;
+import org.conquestDragons.conquestDragons.responseHandler.MessageResponseManager;
+import org.conquestDragons.conquestDragons.responseHandler.messageModels.AdminMessageModels;
+import org.conquestDragons.conquestDragons.responseHandler.messageModels.GenericMessageModels;
+import org.conquestDragons.conquestDragons.responseHandler.messageModels.UserMessageModels;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -20,8 +20,8 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 🧭 CommandManager (ConquestClans)
- * Central executor and tab completer for /clans and its aliases.
+ * 🧭 CommandManager (ConquestDragons)
+ * Central executor and tab completer for /dragons and its aliases.
  */
 public class CommandManager implements CommandExecutor, TabCompleter {
 
@@ -54,7 +54,7 @@ public class CommandManager implements CommandExecutor, TabCompleter {
             @NotNull CommandSender sender,
             @NotNull Command command,
             @NotNull String label,
-            @NotNull String[] args
+            @NotNull String @NotNull [] args
     ) {
         // Mirror Compressor: player-only entry
         if (!(sender instanceof Player player)) {

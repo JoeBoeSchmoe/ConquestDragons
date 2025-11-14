@@ -4,7 +4,7 @@ import org.bukkit.Particle;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
-import org.conquestClans.conquestclans.ConquestClans;
+import org.conquestDragons.conquestDragons.ConquestDragons;
 
 import java.util.List;
 import java.util.Locale;
@@ -13,7 +13,7 @@ import java.util.logging.Logger;
 
 /**
  * 💨 ParticleResponseManager
- * Handles spawning particles defined in message config sections (ConquestClans).
+ * Handles spawning particles defined in message config sections (ConquestDragons).
  *
  * Expected YAML shape (example):
  * particles:
@@ -21,7 +21,7 @@ import java.util.logging.Logger;
  */
 public class ParticleResponseManager {
 
-    private static final Logger log = ConquestClans.getInstance().getLogger();
+    private static final Logger log = ConquestDragons.getInstance().getLogger();
 
     /**
      * Spawns all particles defined in a message section for the player.

@@ -2,7 +2,7 @@ package org.conquestDragons.conquestDragons.responseHandler.messageModels;
 
 /**
  * 👑 AdminMessageModels
- * Enum keys for referencing structured adminMessages.yml paths (ConquestClans).
+ * Enum keys for referencing structured adminMessages.yml paths (ConquestDragons).
  *
  * Mirrors the current adminMessages.yml:
  *   messages.admin.help-usage

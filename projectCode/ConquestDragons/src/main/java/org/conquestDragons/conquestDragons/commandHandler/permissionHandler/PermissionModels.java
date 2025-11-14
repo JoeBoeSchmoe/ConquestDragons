@@ -2,29 +2,29 @@ package org.conquestDragons.conquestDragons.commandHandler.permissionHandler;
 
 /**
  * 🔐 PermissionModels
- * Enum of all permission nodes used in ConquestClans.
+ * Enum of all permission nodes used in ConquestDragons.
  *
  * This centralizes all permission identifiers for easier reference,
  * maintainability, and consistency across the project.
  *
- * Based on ConquestClans’s PermissionModels design.
+ * Based on ConquestDragons’s PermissionModels design.
  */
 public enum PermissionModels {
 
     // ─────────────────────────────────────────────
     // 🎮 User Permissions
     // ─────────────────────────────────────────────
-    USER_BASECOMMAND("conquestclans.user.basecommand"),
-    USER_HELP("conquestclans.user.help"),
-    USER_ALL("conquestclans.user.*"),
+    USER_BASECOMMAND("conquestdragons.user.basecommand"),
+    USER_HELP("conquestdragons.user.help"),
+    USER_ALL("conquestdragons.user.*"),
 
     // ─────────────────────────────────────────────
     // 🛠 Admin Permissions
     // ─────────────────────────────────────────────
-    ADMIN_BASE("conquestclans.admin"),
-    ADMIN_HELP("conquestclans.admin.help"),
-    ADMIN_RELOAD("conquestclans.admin.reload"),
-    ADMIN_ALL("conquestclans.admin.*");
+    ADMIN_BASE("conquestdragons.admin"),
+    ADMIN_HELP("conquestdragons.admin.help"),
+    ADMIN_RELOAD("conquestdragons.admin.reload"),
+    ADMIN_ALL("conquestdragons.admin.*");
 
     private final String node;
 
@@ -35,7 +35,7 @@ public enum PermissionModels {
     /**
      * Returns the full permission string.
      *
-     * @return The permission node (e.g. "conquestclans.user.help")
+     * @return The permission node (e.g. "conquestdragons.user.help")
      */
     public String getNode() {
         return node;

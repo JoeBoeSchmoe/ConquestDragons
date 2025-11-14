@@ -2,7 +2,7 @@ package org.conquestDragons.conquestDragons.configurationHandler.configurationFi
 
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
-import org.conquestClans.conquestclans.ConquestClans;
+import org.conquestDragons.conquestDragons.ConquestDragons;
 
 import java.io.File;
 import java.io.InputStream;
@@ -14,12 +14,12 @@ import java.util.logging.Logger;
 
 /**
  * 💬 GenericMessagesFile
- * - Loads from /plugins/ConquestClans/messagesConfiguration/genericMessages.yml
+ * - Loads from /plugins/ConquestDragons/messagesConfiguration/genericMessages.yml
  * - Copies defaults from resources/messagesConfiguration/genericMessages.yml
  */
 public final class GenericMessagesFile {
 
-    private static final ConquestClans plugin = ConquestClans.getInstance();
+    private static final ConquestDragons plugin = ConquestDragons.getInstance();
     private static final Logger log = plugin.getLogger();
 
     // Path inside the JAR (src/main/resources)

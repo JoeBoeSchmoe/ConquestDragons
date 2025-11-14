@@ -5,7 +5,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.RegisteredServiceProvider;
-import org.conquestClans.conquestclans.ConquestClans;
+import org.conquestDragons.conquestDragons.ConquestDragons;
 
 import java.util.logging.Logger;
 
@@ -20,7 +20,7 @@ import java.util.logging.Logger;
  */
 public final class VaultManager {
 
-    private static final ConquestClans plugin = ConquestClans.getInstance();
+    private static final ConquestDragons plugin = ConquestDragons.getInstance();
     private static final Logger log = plugin.getLogger();
 
     private static boolean requestedEnabled = false; // what config asked for

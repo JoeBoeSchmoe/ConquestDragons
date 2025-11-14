@@ -5,8 +5,8 @@ import net.kyori.adventure.text.Component;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitTask;
-import org.conquestClans.conquestclans.ConquestClans;
-import org.conquestClans.conquestclans.responseHandler.ComponentSerializerManager;
+import org.conquestDragons.conquestDragons.ConquestDragons;
+import org.conquestDragons.conquestDragons.responseHandler.ComponentSerializerManager;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -18,7 +18,7 @@ import java.util.logging.Logger;
  */
 public class BossBarResponseManager {
 
-    private static final Logger log = ConquestClans.getInstance().getLogger();
+    private static final Logger log = ConquestDragons.getInstance().getLogger();
     private static final Map<Player, BossBarEntry> activeBars = new HashMap<>();
 
     private record BossBarEntry(BossBar bar, BukkitTask animationTask, BukkitTask hideTask) {}
@@ -60,7 +60,7 @@ public class BossBarResponseManager {
             if (progressStart != progressEnd) {
                 float delta = (float) ((progressEnd - progressStart) / (time / animationRate));
                 animationTask = player.getServer().getScheduler().runTaskTimer(
-                        ConquestClans.getInstance(),
+                        ConquestDragons.getInstance(),
                         () -> {
                             float current = bossBar.progress();
                             float next = current + delta;
@@ -76,7 +76,7 @@ public class BossBarResponseManager {
             }
 
             BukkitTask hideTask = player.getServer().getScheduler().runTaskLater(
-                    ConquestClans.getInstance(),
+                    ConquestDragons.getInstance(),
                     () -> {
                         BossBarEntry currentEntry = activeBars.get(player);
                         if (currentEntry != null && currentEntry.bar() == bossBar) {

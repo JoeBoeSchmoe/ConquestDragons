@@ -4,8 +4,9 @@ import net.kyori.adventure.text.Component;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
-import org.conquestClans.conquestclans.ConquestClans;
-import org.conquestClans.conquestclans.responseHandler.ComponentSerializerManager;
+import org.conquestDragons.conquestDragons.ConquestDragons;
+import org.conquestDragons.conquestDragons.responseHandler.ComponentSerializerManager;
+
 
 import java.util.Map;
 
@@ -20,7 +21,7 @@ public class ActionBarResponseManager {
      *
      * Expected section:
      * actionbar:
-     *   text: "<gray>Try /clans help</gray>"
+     *   text: "<gray>Try /dragons help</gray>"
      *   duration: 60  # ticks; 20 ticks = ~1s
      */
     public static void send(Player player, ConfigurationSection section, Map<String, String> placeholders) {
@@ -53,6 +54,6 @@ public class ActionBarResponseManager {
                 player.sendActionBar(component);
                 elapsed += 20; // one second per tick cycle
             }
-        }.runTaskTimer(ConquestClans.getInstance(), 0L, 20L);
+        }.runTaskTimer(ConquestDragons.getInstance(), 0L, 20L);
     }
 }

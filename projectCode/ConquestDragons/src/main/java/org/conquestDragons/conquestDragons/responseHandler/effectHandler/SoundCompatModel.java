@@ -1,7 +1,7 @@
 package org.conquestDragons.conquestDragons.responseHandler.effectHandler;
 
 import org.bukkit.Sound;
-import org.conquestClans.conquestclans.ConquestClans;
+import org.conquestDragons.conquestDragons.ConquestDragons;
 
 import java.util.Locale;
 import java.util.Map;
@@ -15,7 +15,7 @@ import java.util.logging.Logger;
  */
 public class SoundCompatModel {
 
-    private static final Logger log = ConquestClans.getInstance().getLogger();
+    private static final Logger log = ConquestDragons.getInstance().getLogger();
 
     /**
      * Aliases: remap legacy → modern enum format.
@@ -75,7 +75,7 @@ public class SoundCompatModel {
         }
 
         // 4) Failure
-        log.warning("[ConquestClans] ⚠️ Unknown or unsupported sound: '" + input + "'");
+        log.warning("[ConquestDragons] ⚠️ Unknown or unsupported sound: '" + input + "'");
         return Optional.empty();
     }
 

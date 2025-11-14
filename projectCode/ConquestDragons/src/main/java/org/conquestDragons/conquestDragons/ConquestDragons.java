@@ -1,17 +1,166 @@
 package org.conquestDragons.conquestDragons;
 
+import org.bukkit.Bukkit;
+import org.bukkit.command.PluginCommand;
+import org.bukkit.event.Listener;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.conquestDragons.conquestDragons.commandHandler.CommandManager;
+import org.conquestDragons.conquestDragons.configurationHandler.ConfigurationManager;
 
+import java.util.*;
+import java.util.logging.Level;
+
+/**
+ * 🧱 ConquestDragons - Main plugin class.
+ *
+ * Bootstraps configuration, commands, listeners, and subsystem managers.
+ * Keep logic tiny here—delegate to services/managers for testability.
+ */
 public final class ConquestDragons extends JavaPlugin {
+
+    private static ConquestDragons pluginInstance;
+
+    private ConfigurationManager configurationManager;
+    private final boolean premiumEnabled = false;
+
+    private CommandManager commandManager;
+    private String primaryCommandName; // resolved from plugin.yml at runtime
+
+    @Override
+    public void onLoad() {
+        pluginInstance = this;
+    }
 
     @Override
     public void onEnable() {
-        // Plugin startup logic
+        getLogger().info("🔧  Enabling ConquestDragons...");
 
+        configurationManager = new ConfigurationManager();
+        configurationManager.initialize(); // load configs
+
+        // Commands & listeners
+        setupCommands();
+        registerListeners(
+                // new PlayerJoinListener()
+                // new ClanChatListener()
+                // new RegionGuardListener()
+        );
+
+        getLogger().info("✅  ConquestDragons fully loaded.");
     }
 
     @Override
     public void onDisable() {
-        // Plugin shutdown logic
+        getLogger().info("📦  Saving plugin state...");
+        getLogger().info("🔻  ConquestDragons has been disabled.");
+    }
+
+    /**
+     * Reloads configs and hot-reloadable subsystems safely.
+     */
+    public void reload() {
+        getLogger().info("🔄  Reloading ConquestDragons...");
+
+        configurationManager.initialize();
+
+        // Keep command binding intact, but re-sync aliases from config
+        syncCommandAliases();
+
+        getLogger().info("✅  Reload complete.");
+    }
+
+    /**
+     * Binds the command from plugin.yml (whatever root the user configured)
+     * and syncs aliases from config: command-aliases.
+     */
+    private void setupCommands() {
+        // Resolve our declared commands from plugin.yml
+        Map<String, Map<String, Object>> declared = getDescription().getCommands();
+        if (declared.isEmpty()) {
+            getLogger().severe("❌  No commands declared in plugin.yml! Aborting command setup.");
+            return;
+        }
+
+        // Choose the first declared command name as our primary (typical plugins declare only one)
+        // If you declare more than one, you can pick a specific one via config if you prefer.
+        primaryCommandName = declared.keySet().iterator().next();
+
+        PluginCommand pluginCommand = getCommand(primaryCommandName);
+        if (pluginCommand == null) {
+            getLogger().severe("❌  Command '" + primaryCommandName + "' not found in plugin.yml!");
+            return;
+        }
+
+        // Create a single manager instance (executor + tab)
+        commandManager = new CommandManager();
+        pluginCommand.setExecutor(commandManager);
+        pluginCommand.setTabCompleter(commandManager);
+
+        // Initial alias sync from config
+        syncCommandAliases();
+
+        getLogger().info("🧭  Bound root command: /" + primaryCommandName);
+    }
+
+    /**
+     * Sync aliases from config (command-aliases) to the bound PluginCommand.
+     * If config includes the primary name, we strip it (Bukkit handles the base).
+     */
+    private void syncCommandAliases() {
+        if (primaryCommandName == null) return;
+
+        PluginCommand pluginCommand = getCommand(primaryCommandName);
+        if (pluginCommand == null) return;
+
+        List<String> configured = getConfig().getStringList("command-aliases");
+
+        // Normalize + de-duplicate
+        Set<String> unique = new LinkedHashSet<>();
+        for (String s : configured) {
+            if (s == null) continue;
+            String alias = s.trim();
+            if (alias.isEmpty()) continue;
+            if (alias.equalsIgnoreCase(primaryCommandName)) continue; // don't duplicate base as alias
+            unique.add(alias.toLowerCase(Locale.ROOT));
+        }
+
+        List<String> aliases = new ArrayList<>(unique);
+        pluginCommand.setAliases(aliases);
+
+        // Log helpful hints if plugin.yml and config look out-of-sync
+        Map<String, Map<String, Object>> declared = getDescription().getCommands();
+        Map<String, Object> meta = declared.get(primaryCommandName);
+        @SuppressWarnings("unchecked")
+        List<String> ymlAliases = meta != null ? (List<String>) meta.getOrDefault("aliases", Collections.emptyList()) : Collections.emptyList();
+
+        // Just informational: show both sets so admins understand where to change what
+        getLogger().log(Level.INFO, () ->
+                "📝  Command sync → primary: /" + primaryCommandName +
+                        ", yml-aliases: " + ymlAliases +
+                        ", cfg-aliases: " + aliases
+        );
+
+        // If config contains aliases that aren't in plugin.yml, that's fine — we set them here.
+        // If admin changes the primary command name, they MUST edit plugin.yml accordingly.
+    }
+
+    private void registerListeners(Listener... listeners) {
+        for (Listener listener : listeners) {
+            Bukkit.getPluginManager().registerEvents(listener, this);
+        }
+    }
+
+    // ---- Accessors (prefer constructor injection elsewhere) ----
+
+    public static ConquestDragons getInstance() {
+        return pluginInstance;
+    }
+
+    public ConfigurationManager getConfigurationManager() {
+        return configurationManager;
+    }
+
+    public boolean isPremium() {
+        return premiumEnabled;
     }
 }

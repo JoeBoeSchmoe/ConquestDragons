@@ -1,16 +1,16 @@
 package org.conquestDragons.conquestDragons.commandHandler.subcommandHandler;
 
 import org.bukkit.entity.Player;
-import org.conquestClans.conquestclans.ConquestClans;
-import org.conquestClans.conquestclans.commandHandler.permissionHandler.PermissionManager;
-import org.conquestClans.conquestclans.commandHandler.permissionHandler.PermissionModels;
-import org.conquestClans.conquestclans.responseHandler.MessageResponseManager;
-import org.conquestClans.conquestclans.responseHandler.messageModels.AdminMessageModels;
-import org.conquestClans.conquestclans.responseHandler.messageModels.GenericMessageModels;
+import org.conquestDragons.conquestDragons.ConquestDragons;
+import org.conquestDragons.conquestDragons.commandHandler.permissionHandler.PermissionManager;
+import org.conquestDragons.conquestDragons.commandHandler.permissionHandler.PermissionModels;
+import org.conquestDragons.conquestDragons.responseHandler.MessageResponseManager;
+import org.conquestDragons.conquestDragons.responseHandler.messageModels.AdminMessageModels;
+import org.conquestDragons.conquestDragons.responseHandler.messageModels.GenericMessageModels;
 
 /**
  * 👑 AdminCommandManager
- * Handles /clans admin subcommands.
+ * Handles /dragons admin subcommands.
  *
  * Uses AdminMessageModels and MessageResponseManager for
  * all feedback, following the same pattern as UserCommandManager.
@@ -18,7 +18,7 @@ import org.conquestClans.conquestclans.responseHandler.messageModels.GenericMess
 public class AdminCommandManager {
 
     /**
-     * Handles /clans admin <subcommand>
+     * Handles /dragons admin <subcommand>
      *
      * @param player player executing the command
      * @param args   full argument array
@@ -57,7 +57,7 @@ public class AdminCommandManager {
     }
 
     /**
-     * Handles /clans admin help [page]
+     * Handles /dragons admin help [page]
      */
     private static boolean handleHelp(Player player, String[] args) {
         if (!hasAdminPermission(player, PermissionModels.ADMIN_HELP)) {
@@ -80,7 +80,7 @@ public class AdminCommandManager {
     }
 
     /**
-     * Handles /clans admin reload
+     * Handles /dragons admin reload
      */
     private static boolean handleReload(Player player) {
         if (!hasAdminPermission(player, PermissionModels.ADMIN_RELOAD)) {
@@ -88,7 +88,7 @@ public class AdminCommandManager {
             return true;
         }
 
-        ConquestClans.getInstance().reload();
+        ConquestDragons.getInstance().reload();
         MessageResponseManager.send(player, AdminMessageModels.RELOAD_SUCCESS);
         return true;
     }

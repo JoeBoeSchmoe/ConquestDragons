@@ -4,14 +4,14 @@ import org.bukkit.command.CommandSender;
 
 /**
  * 🔐 PermissionManager
- * Utility class for validating command permissions in ConquestClans.
+ * Utility class for validating command permissions in ConquestDragons.
  *
  * Provides hierarchical permission checking:
  * - Direct node check
- * - Wildcard parent check (e.g. conquestclans.user.*)
+ * - Wildcard parent check (e.g. conquestdragons.user.*)
  * - Operator (op) override
  *
- * Inspired by ConquestClans’s PermissionManager.
+ * Inspired by ConquestDragons’s PermissionManager.
  */
 public class PermissionManager {
 
@@ -30,7 +30,7 @@ public class PermissionManager {
         // Direct permission check
         if (sender.hasPermission(node)) return true;
 
-        // Check wildcard parents recursively (e.g. conquestclans.user.*)
+        // Check wildcard parents recursively (e.g. conquestdragons.user.*)
         String[] parts = node.split("\\.");
         StringBuilder current = new StringBuilder();
 

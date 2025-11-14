@@ -4,7 +4,7 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.title.Title;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
-import org.conquestClans.conquestclans.configurationHandler.configurationFiles.integrationFiles.PlaceholderAPIManager;
+import org.conquestDragons.conquestDragons.configurationHandler.configurationFiles.integrationFiles.PlaceholderAPIManager;
 
 import java.time.Duration;
 import java.util.Map;
@@ -15,8 +15,8 @@ import java.util.Map;
  *
  * Expected YAML shape:
  * title:
- *   text: "<gold><bold>Clans Admin</bold></gold>"
- *   subtitle: "<gray>Use /clans admin help to get started."
+ *   text: "<gold><bold>Dragon Admin</bold></gold>"
+ *   subtitle: "<gray>Use /dragons admin help to get started."
  *   timings: { fadeIn: 10, stay: 40, fadeOut: 20 } # ticks
  */
 public class TitleResponseManager {

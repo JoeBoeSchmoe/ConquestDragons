@@ -4,14 +4,14 @@ import org.bukkit.Sound;
 import org.bukkit.SoundCategory;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
-import org.conquestClans.conquestclans.ConquestClans;
+import org.conquestDragons.conquestDragons.ConquestDragons;
 
 import java.util.Optional;
 import java.util.logging.Logger;
 
 /**
  * 🔊 SoundResponseManager
- * Handles playing configured sound effects from message sections (ConquestClans).
+ * Handles playing configured sound effects from message sections (ConquestDragons).
  *
  * Expected YAML shape:
  * sound:
@@ -21,7 +21,7 @@ import java.util.logging.Logger;
  */
 public class SoundResponseManager {
 
-    private static final Logger log = ConquestClans.getInstance().getLogger();
+    private static final Logger log = ConquestDragons.getInstance().getLogger();
 
     /**
      * Plays a sound to a player from the given configuration section.

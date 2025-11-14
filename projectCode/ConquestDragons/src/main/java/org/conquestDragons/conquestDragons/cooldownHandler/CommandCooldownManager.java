@@ -1,6 +1,7 @@
 package org.conquestDragons.conquestDragons.cooldownHandler;
 
-import org.conquestClans.conquestclans.ConquestClans;
+
+import org.conquestDragons.conquestDragons.ConquestDragons;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -67,7 +68,7 @@ public final class CommandCooldownManager {
      * @return milliseconds
      */
     private static long getConfiguredCooldownMs() {
-        return Math.max(0, ConquestClans.getInstance()
+        return Math.max(0, ConquestDragons.getInstance()
                 .getConfigurationManager()
                 .getConfig()
                 .getLong("cooldowns.command-delay-ms", 500));

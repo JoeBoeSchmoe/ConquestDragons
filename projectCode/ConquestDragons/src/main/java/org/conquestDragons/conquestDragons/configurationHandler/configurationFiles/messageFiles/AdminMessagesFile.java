@@ -2,7 +2,7 @@ package org.conquestDragons.conquestDragons.configurationHandler.configurationFi
 
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
-import org.conquestClans.conquestclans.ConquestClans;
+import org.conquestDragons.conquestDragons.ConquestDragons;
 
 import java.io.File;
 import java.io.InputStream;
@@ -14,12 +14,12 @@ import java.util.logging.Logger;
 
 /**
  * 💬 AdminMessagesFile
- * - Loads from /plugins/ConquestClans/messagesConfiguration/adminMessages.yml
+ * - Loads from /plugins/ConquestDragons/messagesConfiguration/adminMessages.yml
  * - Copies defaults from resources/messagesConfiguration/adminMessages.yml
  */
 public final class AdminMessagesFile {
 
-    private static final ConquestClans plugin = ConquestClans.getInstance();
+    private static final ConquestDragons plugin = ConquestDragons.getInstance();
     private static final Logger log = plugin.getLogger();
 
     // Path inside the JAR (src/main/resources)
@@ -34,7 +34,7 @@ public final class AdminMessagesFile {
 
     public static void load() {
         try {
-            // Ensure correct folder structure under /plugins/ConquestClans/
+            // Ensure correct folder structure under /plugins/`ConquestDragons`/
             file = new File(plugin.getDataFolder(), DATA_RELATIVE_PATH);
             File parent = file.getParentFile();
             if (parent != null && !parent.exists() && !parent.mkdirs()) {

@@ -2,7 +2,7 @@ package org.conquestDragons.conquestDragons.responseHandler.messageModels;
 
 /**
  * 💬 GenericMessageModels
- * Enum keys for referencing structured genericMessages.yml paths (ConquestClans).
+ * Enum keys for referencing structured genericMessages.yml paths (ConquestDragons).
  *
  * Mirrors the current genericMessages.yml:
  *   messages.not-player

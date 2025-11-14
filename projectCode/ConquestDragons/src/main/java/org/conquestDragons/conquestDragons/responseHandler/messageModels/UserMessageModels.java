@@ -2,7 +2,7 @@ package org.conquestDragons.conquestDragons.responseHandler.messageModels;
 
 /**
  * 🎮 UserMessageModels
- * Enum keys for referencing structured userMessages.yml paths (ConquestClans).
+ * Enum keys for referencing structured userMessages.yml paths (ConquestDragons).
  *
  * Mirrors the current userMessages.yml:
  *   messages.user.help-usage

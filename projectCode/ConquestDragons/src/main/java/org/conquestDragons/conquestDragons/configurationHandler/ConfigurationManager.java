@@ -1,14 +1,15 @@
 package org.conquestDragons.conquestDragons.configurationHandler;
 
 import org.bukkit.configuration.file.FileConfiguration;
-import org.conquestClans.conquestclans.ConquestClans;
-import org.conquestClans.conquestclans.configurationHandler.configurationFiles.ConfigFile;
-import org.conquestClans.conquestclans.configurationHandler.configurationFiles.integrationFiles.PlaceholderAPIManager;
-import org.conquestClans.conquestclans.configurationHandler.configurationFiles.integrationFiles.VaultManager;
-import org.conquestClans.conquestclans.configurationHandler.configurationFiles.integrationFiles.WorldGuardManager;
-import org.conquestClans.conquestclans.configurationHandler.configurationFiles.messageFiles.AdminMessagesFile;
-import org.conquestClans.conquestclans.configurationHandler.configurationFiles.messageFiles.GenericMessagesFile;
-import org.conquestClans.conquestclans.configurationHandler.configurationFiles.messageFiles.UserMessagesFile;
+import org.conquestDragons.conquestDragons.ConquestDragons;
+import org.conquestDragons.conquestDragons.configurationHandler.configurationFiles.ConfigFile;
+import org.conquestDragons.conquestDragons.configurationHandler.configurationFiles.integrationFiles.PlaceholderAPIManager;
+import org.conquestDragons.conquestDragons.configurationHandler.configurationFiles.integrationFiles.VaultManager;
+import org.conquestDragons.conquestDragons.configurationHandler.configurationFiles.integrationFiles.WorldGuardManager;
+import org.conquestDragons.conquestDragons.configurationHandler.configurationFiles.messageFiles.AdminMessagesFile;
+import org.conquestDragons.conquestDragons.configurationHandler.configurationFiles.messageFiles.GenericMessagesFile;
+import org.conquestDragons.conquestDragons.configurationHandler.configurationFiles.messageFiles.UserMessagesFile;
+
 
 import java.util.logging.Logger;
 
@@ -22,7 +23,7 @@ import java.util.logging.Logger;
  */
 public class ConfigurationManager {
 
-    private final ConquestClans plugin = ConquestClans.getInstance();
+    private final ConquestDragons plugin = ConquestDragons.getInstance();
     private final Logger log = plugin.getLogger();
     private FileConfiguration mainConfig;
 

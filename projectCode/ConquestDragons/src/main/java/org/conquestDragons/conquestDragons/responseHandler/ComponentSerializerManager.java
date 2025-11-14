@@ -5,13 +5,13 @@ import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.event.HoverEvent;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.bukkit.entity.Player;
-import org.conquestClans.conquestclans.configurationHandler.configurationFiles.integrationFiles.PlaceholderAPIManager;
+import org.conquestDragons.conquestDragons.configurationHandler.configurationFiles.integrationFiles.PlaceholderAPIManager;
 
 import java.util.Map;
 
 /**
  * 🧱 ComponentSerializerManager
- * Builds formatted, hoverable, and clickable components from YAML structures (ConquestClans).
+ * Builds formatted, hoverable, and clickable components from YAML structures (ConquestDragons).
  */
 public class ComponentSerializerManager {
 
