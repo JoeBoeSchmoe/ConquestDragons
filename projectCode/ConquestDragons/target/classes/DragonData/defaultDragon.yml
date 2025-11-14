@@ -1,0 +1,62 @@
+# ===================================================
+# 🐉 ConquestDragons - Example Dragon Definition
+# This file lives inside /DragonData/defaultDragon.yml
+#
+# Dragon ID is automatically set to: defaultDragon
+# (the filename without .yml)
+# ===================================================
+
+dragon:
+
+  # ---------------------------------------------------
+  # DISPLAY NAME (for bossbar, announcements, etc.)
+  # ---------------------------------------------------
+  display-name: "<green>Emerald Drake</green>"
+
+
+  # ---------------------------------------------------
+  # DIFFICULTY PRESET
+  # ---------------------------------------------------
+  # Presets:
+  #   EASY, MEDIUM, HARD, BEDROCK
+  #
+  # Set to CUSTOM to activate the custom-difficulty section.
+  # ---------------------------------------------------
+  difficulty: MEDIUM
+
+
+  # ---------------------------------------------------
+  # CUSTOM DIFFICULTY (only when difficulty: CUSTOM)
+  # Missing values fall back to MEDIUM defaults.
+  # ---------------------------------------------------
+  custom-difficulty:
+
+    display-name: "<yellow>Emerald Drake - Custom Variant</yellow>"
+
+    # === Speed / Attack Speed ===
+    speed: FAST                 # DragonSpeedKey
+    attack-speed: MEDIUM        # DragonAttackSpeedKey
+    summon-speed: MEDIUM        # DragonSummonSpeedKey
+
+    # === Defense / Resistances ===
+    scale-strength: THICK       # DragonScaleStrength
+    barrier-strength: AVERAGE   # DragonBarrierStrengthKey
+    summon-strength: STRONG     # DragonSummonStrengthKey
+
+    # === AI Intelligence ===
+    ai: SMART                   # DragonAIKey
+
+
+  # ---------------------------------------------------
+  # HEALTH COLOR PROFILES
+  # ---------------------------------------------------
+  # Profiles come from defaultDragonHealthColors.yml
+  #
+  # Valid:
+  #   SIMPLE
+  #   DETAILED
+  #
+  # Glow + Bossbar are independent.
+  # ---------------------------------------------------
+  glow-profile: SIMPLE
+  bossbar-profile: SIMPLE

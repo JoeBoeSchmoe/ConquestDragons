@@ -4,23 +4,21 @@ import org.conquestDragons.conquestDragons.dragonHandler.keyHandler.*;
 import org.conquestDragons.conquestDragons.dragonHandler.keyHandler.difficultyKeys.*;
 
 import java.util.Objects;
-import java.util.Locale;
 
 /**
- * Represents a complete difficulty preset for a dragon.
+ * Represents a complete difficulty definition for a dragon.
  *
- * This includes:
+ * Includes:
  *  - The difficultyKey (EASY / MEDIUM / HARD / BEDROCK / CUSTOM)
- *  - All tuning enums that describe how this difficulty behaves
+ *  - All tuning enums describing how the dragon behaves
  *
  * Loaded from:
- *  - defaultDifficultyValues.yml   (for preset EASY/HARD/etc.)
- *  - dragon-specific YAML          (for CUSTOM difficulties)
+ *  - defaultDifficultyValues.yml   (preset difficulties)
+ *  - dragonData/*.yml             (custom difficulties)
  */
 public record DragonDifficultyModel(
 
-        String id,                         // config key: "easy", "hard", "custom_shadowlord"
-        String displayName,                // MiniMessage: "<red>Hard</red>"
+        String displayName,                // MiniMessage, e.g. "<red>Hard</red>"
         DragonDifficultyKey difficultyKey, // EASY / MEDIUM / HARD / BEDROCK / CUSTOM
 
         // ---- Full tuning set ----
@@ -30,15 +28,13 @@ public record DragonDifficultyModel(
         DragonBarrierStrengthKey barrierKey,
         DragonSummonSpeedKey summonSpeedKey,
         DragonSummonStrengthKey summonStrengthKey,
-        DragonAIKey aiKey                 // NEW
+        DragonAIKey aiKey
 
 ) {
 
     public DragonDifficultyModel {
-        Objects.requireNonNull(id, "id");
         Objects.requireNonNull(displayName, "displayName");
         Objects.requireNonNull(difficultyKey, "difficultyKey");
-
         Objects.requireNonNull(speedKey, "speedKey");
         Objects.requireNonNull(attackSpeedKey, "attackSpeedKey");
         Objects.requireNonNull(scaleStrengthKey, "scaleStrengthKey");
@@ -60,18 +56,10 @@ public record DragonDifficultyModel(
     }
 
     // ---------------------------------------------------
-    // Stable config ID
-    // ---------------------------------------------------
-    public String configId() {
-        return id.toLowerCase(Locale.ROOT);
-    }
-
-    // ---------------------------------------------------
-    // "with" helpers (immutable design)
+    // Immutability: with() helpers
     // ---------------------------------------------------
     public DragonDifficultyModel withDisplayName(String newName) {
         return new DragonDifficultyModel(
-                this.id,
                 newName,
                 this.difficultyKey,
                 this.speedKey,
@@ -86,7 +74,6 @@ public record DragonDifficultyModel(
 
     public DragonDifficultyModel withKey(DragonDifficultyKey newKey) {
         return new DragonDifficultyModel(
-                this.id,
                 this.displayName,
                 newKey,
                 this.speedKey,

@@ -70,8 +70,7 @@ public final class DefaultDifficultyValuesFile {
                 continue;
             }
 
-            // Basic fields
-            String id = diffSec.getString("id", diffKeyName.toLowerCase(Locale.ROOT));
+            // Basic field: display-name (MiniMessage)
             String displayName = diffSec.getString("display-name", diffKeyName);
 
             // Tuning enums with safe parsing + fallbacks
@@ -86,7 +85,6 @@ public final class DefaultDifficultyValuesFile {
             DragonAIKey aiKey = parseAIKey(plugin, diffSec, diffKeyName);
 
             DragonDifficultyModel model = new DragonDifficultyModel(
-                    id,
                     displayName,
                     difficultyKey,
                     speedKey,

@@ -6,7 +6,6 @@
 difficulties:
 
   EASY:
-    id: "easy"
     display-name: "<green>Easy</green>"
 
     # -----------------------
@@ -30,7 +29,6 @@ difficulties:
 
 
   MEDIUM:
-    id: "medium"
     display-name: "<yellow>Normal</yellow>"
 
     # -----------------------
@@ -54,7 +52,6 @@ difficulties:
 
 
   HARD:
-    id: "hard"
     display-name: "<red>Hard</red>"
 
     # -----------------------
@@ -78,7 +75,6 @@ difficulties:
 
 
   BEDROCK:
-    id: "bedrock"
     display-name: "<dark_purple>BEDROCK</dark_purple>"
 
     # -----------------------
