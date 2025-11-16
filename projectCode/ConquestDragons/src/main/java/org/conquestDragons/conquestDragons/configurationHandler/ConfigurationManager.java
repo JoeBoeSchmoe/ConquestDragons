@@ -4,6 +4,7 @@ import org.bukkit.configuration.file.FileConfiguration;
 import org.conquestDragons.conquestDragons.ConquestDragons;
 import org.conquestDragons.conquestDragons.configurationHandler.configurationFiles.ConfigFile;
 import org.conquestDragons.conquestDragons.configurationHandler.configurationFiles.dataFiles.DragonDataFiles;
+import org.conquestDragons.conquestDragons.configurationHandler.configurationFiles.dataFiles.EventDataFiles;
 import org.conquestDragons.conquestDragons.configurationHandler.configurationFiles.defaultValueFiles.DefaultDifficultyValuesFile;
 import org.conquestDragons.conquestDragons.configurationHandler.configurationFiles.defaultValueFiles.DefaultDragonHealthColorsFile;
 import org.conquestDragons.conquestDragons.configurationHandler.configurationFiles.integrationFiles.PlaceholderAPIManager;
@@ -59,6 +60,7 @@ public class ConfigurationManager {
 
             // Data Files
             DragonDataFiles.loadAll();
+            EventDataFiles.loadAll();
 
             log.info("✅  Configuration loading complete.");
         } catch (Exception e) {

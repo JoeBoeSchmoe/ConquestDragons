@@ -401,7 +401,17 @@ public final class DragonDataFiles {
                     "⚠️  Missing bundled resource 'DragonData/defaultDragon.yml' in the jar. " +
                             "No default dragons will be created.");
         }
+
+        // NEW: also drop the boss dragon if bundled
+        try {
+            plugin.saveResource("DragonData/defaultBossDragon.yml", false);
+            plugin.getLogger().info("✅  Placed default DragonData/defaultBossDragon.yml onto disk.");
+        } catch (IllegalArgumentException ex) {
+            plugin.getLogger().warning(
+                    "⚠️  Missing bundled resource 'DragonData/defaultBossDragon.yml' in the jar.");
+        }
     }
+
 
     // ---------------------------------------------------------------------
     // Small helper

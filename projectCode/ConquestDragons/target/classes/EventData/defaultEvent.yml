@@ -1,0 +1,154 @@
+# ===================================================
+# 🐉 ConquestDragons - Example Event Definition
+# Location: /EventData/defaultEvent.yml
+#
+# Event ID is automatically assigned from the filename:
+#   defaultEvent.yml  -->  id = "defaultEvent"
+#
+# This represents a full multi-stage Dragon Event:
+#   - INITIAL: players fight normal dragons in the arena
+#   - IN_BELLY: selected players are "eaten" and fight inside the belly arena
+#   - FINAL: boss dragon spawns once all normal dragons are defeated
+# ===================================================
+
+event:
+
+  # ---------------------------------------------------
+  # DISPLAY NAME (MiniMessage)
+  # ---------------------------------------------------
+  display-name: "<gold><bold>Ritual of the Devourer</bold></gold>"
+
+  # ---------------------------------------------------
+  # DRAGON CONFIG IDS
+  # ---------------------------------------------------
+  dragon-ids:
+    - "defaultDragon"
+    - "defaultDragon_variant2"
+
+  boss-dragon-id: "exampleBossDragon"
+
+
+  # ---------------------------------------------------
+  # ARENA REGION (AXIS-ALIGNED BOX)
+  # ---------------------------------------------------
+  arena:
+    world: "world"
+
+    corner-a:
+      x: 100.0
+      y: 64.0
+      z: 100.0
+
+    corner-b:
+      x: 150.0
+      y: 90.0
+      z: 150.0
+
+
+  # ---------------------------------------------------
+  # BELLY TRIGGER (PER-DRAGON HP THRESHOLD)
+  # ---------------------------------------------------
+  belly-trigger-health-fraction: 0.35
+
+
+  # ---------------------------------------------------
+  # SCHEDULING & DURATION
+  # ---------------------------------------------------
+  max-duration-seconds: 1800   # 30 minutes
+
+  schedule:
+    repeat: DAILY         # DAILY, WEEKLY, MONTHLY
+
+    time:
+      hour: 19
+      minute: 30
+      second: 0
+
+    # Only used when repeat: WEEKLY
+    # day-of-week: FRIDAY
+
+    # Only used when repeat: MONTHLY
+    # day-of-month: 1
+
+
+  # ---------------------------------------------------
+  # JOIN WINDOW & REMINDERS
+  # ---------------------------------------------------
+  # Only timing values remain; message will be defined elsewhere.
+  # ---------------------------------------------------
+  join-window-length-seconds: 300          # 5 minutes
+  join-reminder-interval-seconds: 60       # every 1 minute
+
+
+  # ---------------------------------------------------
+  # STAGES
+  # ---------------------------------------------------
+  stages:
+
+    # ================================================
+    # 1) INITIAL STAGE - NORMAL DRAGON FIGHT
+    # ================================================
+    - key: INITIAL
+
+      start-commands:
+        - "say [DRAGON EVENT] The ritual begins!"
+        - "title @a title {\"text\":\"Ritual of the Devourer\",\"color\":\"gold\"}"
+        - "title @a subtitle {\"text\":\"Defeat the drakes before they consume you...\",\"color\":\"red\"}"
+
+      timed-commands:
+        - delay-ticks: 200
+          commands:
+            - "say [DRAGON EVENT] You feel the air grow heavy..."
+
+        - delay-ticks: 600
+          commands:
+            - "say [DRAGON EVENT] The dragons hunger for your souls..."
+
+      end-commands:
+        - "say [DRAGON EVENT] The initial assault has ended..."
+        - "tellraw @a {\"text\":\"Some of you have been swallowed whole...\",\"color\":\"dark_red\"}"
+
+
+    # ================================================
+    # 2) IN_BELLY STAGE - BELLY ARENA FIGHT
+    # ================================================
+    - key: IN_BELLY
+
+      start-commands:
+        - "say [DRAGON EVENT] You have been devoured! Fight your way out!"
+        - "title @a[tag=in_belly] title {\"text\":\"Inside the Maw\",\"color\":\"dark_red\"}"
+
+      timed-commands:
+        - delay-ticks: 100
+          commands:
+            - "effect give @a[tag=in_belly] minecraft:poison 5 0 true"
+            - "say [DRAGON EVENT] The stomach acids burn your skin..."
+
+        - delay-ticks: 500
+          commands:
+            - "say [DRAGON EVENT] The belly convulses violently!"
+
+      end-commands:
+        - "say [DRAGON EVENT] Those within the belly have been released..."
+        - "title @a[tag=in_belly] clear"
+
+
+    # ================================================
+    # 3) FINAL STAGE - BOSS FIGHT + CLEANUP
+    # ================================================
+    - key: FINAL
+
+      start-commands:
+        - "say [DRAGON EVENT] The Apex Devourer emerges!"
+        - "title @a title {\"text\":\"Apex Devourer\",\"color\":\"dark_red\"}"
+        - "title @a subtitle {\"text\":\"This is your final stand.\",\"color\":\"dark_purple\"}"
+
+      timed-commands:
+        - delay-ticks: 300
+          commands:
+            - "say [DRAGON EVENT] The Apex Devourer roars in fury!"
+
+      end-commands:
+        - "say [DRAGON EVENT] The Devourer has been slain! The realm is safe... for now."
+        - "title @a title {\"text\":\"Victory!\",\"color\":\"green\"}"
+        - "title @a subtitle {\"text\":\"You have survived the Ritual of the Devourer.\",\"color\":\"gold\"}"

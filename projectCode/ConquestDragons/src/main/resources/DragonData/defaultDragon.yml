@@ -1,15 +1,15 @@
 # ===================================================
 # 🐉 ConquestDragons - Example Dragon Definition
-# This file lives inside /DragonData/defaultDragon.yml
+# Location: /DragonData/defaultDragon.yml
 #
-# Dragon ID is automatically set to: defaultDragon
-# (the filename without .yml)
+# Dragon ID is automatically assigned from the filename:
+#   defaultDragon.yml  -->  id = "defaultDragon"
 # ===================================================
 
 dragon:
 
   # ---------------------------------------------------
-  # DISPLAY NAME (for bossbar, announcements, etc.)
+  # DISPLAY NAME (MiniMessage)
   # ---------------------------------------------------
   display-name: "<green>Emerald Drake</green>"
 
@@ -18,41 +18,73 @@ dragon:
   # DIFFICULTY PRESET
   # ---------------------------------------------------
   # Presets:
-  #   EASY, MEDIUM, HARD, BEDROCK
+  #   EASY
+  #   MEDIUM
+  #   HARD
+  #   BEDROCK
   #
-  # Set to CUSTOM to activate the custom-difficulty section.
+  # Set to CUSTOM to use the "custom-difficulty" section.
   # ---------------------------------------------------
   difficulty: MEDIUM
 
 
   # ---------------------------------------------------
-  # CUSTOM DIFFICULTY (only when difficulty: CUSTOM)
-  # Missing values fall back to MEDIUM defaults.
+  # CUSTOM DIFFICULTY (only used if difficulty: CUSTOM)
+  # Missing fields fall back to MEDIUM presets.
   # ---------------------------------------------------
   custom-difficulty:
 
     display-name: "<yellow>Emerald Drake - Custom Variant</yellow>"
 
-    # === Speed / Attack Speed ===
-    speed: FAST                 # DragonSpeedKey
-    attack-speed: MEDIUM        # DragonAttackSpeedKey
-    summon-speed: MEDIUM        # DragonSummonSpeedKey
+    # ==================================================
+    #  SPEED / OFFENSE
+    # ==================================================
 
-    # === Defense / Resistances ===
-    scale-strength: THICK       # DragonScaleStrength
-    barrier-strength: AVERAGE   # DragonBarrierStrengthKey
-    summon-strength: STRONG     # DragonSummonStrengthKey
+    # DragonSpeedKey:
+    #   TURTLE, SLOW, MEDIUM, FAST, WHYNOT
+    speed: FAST
 
-    # === AI Intelligence ===
-    ai: SMART                   # DragonAIKey
+    # DragonAttackSpeedKey:
+    #   TURTLE, SLOW, MEDIUM, FAST, WHYNOT
+    attack-speed: MEDIUM
+
+    # DragonSummonSpeedKey:
+    #   TURTLE, SLOW, MEDIUM, FAST, WHYNOT
+    summon-speed: MEDIUM
+
+
+    # ==================================================
+    #  DEFENSE / RESISTANCES
+    # ==================================================
+
+    # DragonScaleStrength:
+    #   FRAGILE, WEAK, AVERAGE, THICK, IMPENETRABLE
+    scale-strength: THICK
+
+    # DragonBarrierStrengthKey:
+    #   FRAGILE, WEAK, AVERAGE, THICK, IMPENETRABLE
+    barrier-strength: AVERAGE
+
+    # DragonSummonStrengthKey:
+    #   FRAGILE, WEAK, AVERAGE, STRONG, OVERWHELMING
+    summon-strength: STRONG
+
+
+    # ==================================================
+    #  ARTIFICIAL INTELLIGENCE
+    # ==================================================
+
+    # DragonAIKey:
+    #   DUMB, AVERAGE, SMART, ADVANCED, GENIUS
+    ai: SMART
 
 
   # ---------------------------------------------------
   # HEALTH COLOR PROFILES
   # ---------------------------------------------------
-  # Profiles come from defaultDragonHealthColors.yml
+  # Comes from: defaultDragonHealthColors.yml
   #
-  # Valid:
+  # Supported:
   #   SIMPLE
   #   DETAILED
   #

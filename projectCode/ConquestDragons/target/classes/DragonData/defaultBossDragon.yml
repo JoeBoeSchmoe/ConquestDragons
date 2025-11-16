@@ -1,9 +1,12 @@
 # ===================================================
-# 🐉 ConquestDragons - Example Dragon Definition
-# Location: /DragonData/defaultDragon.yml
+# 🐉 ConquestDragons - Example Boss Dragon Definition
+# Location: /DragonData/defaultBossDragon.yml
 #
 # Dragon ID is automatically assigned from the filename:
-#   defaultDragon.yml  -->  id = "defaultDragon"
+#   defaultBossDragon.yml  -->  id = "defaultBossDragon"
+#
+# This represents a BOSS-TIER dragon used in FINAL stages
+# of the Dragon Event system.
 # ===================================================
 
 dragon:
@@ -11,30 +14,39 @@ dragon:
   # ---------------------------------------------------
   # DISPLAY NAME (MiniMessage)
   # ---------------------------------------------------
-  display-name: "<green>Emerald Drake</green>"
+  display-name: "<dark_red><bold>Apex Devourer</bold></dark_red>"
 
 
   # ---------------------------------------------------
   # DIFFICULTY PRESET
   # ---------------------------------------------------
-  # Presets:
-  #   EASY
-  #   MEDIUM
+  # Recommended boss presets:
   #   HARD
-  #   BEDROCK
+  #   BEDROCK   ← Default for bosses
   #
-  # Set to CUSTOM to use the "custom-difficulty" section.
+  # Set to CUSTOM to enable the "custom-difficulty" section.
   # ---------------------------------------------------
-  difficulty: MEDIUM
+  difficulty: BEDROCK
 
 
   # ---------------------------------------------------
   # CUSTOM DIFFICULTY (only used if difficulty: CUSTOM)
-  # Missing fields fall back to MEDIUM presets.
+  # Missing fields fall back to BEDROCK presets.
+  #
+  # Boss dragons often use the highest tiers:
+  #   - SPEED: FAST / WHYNOT
+  #   - ATTACK-SPEED: FAST / WHYNOT
+  #   - SUMMON-SPEED: FAST / WHYNOT
+  #   - SCALE-STRENGTH: THICK / IMPENETRABLE
+  #   - BARRIER-STRENGTH: THICK / IMPENETRABLE
+  #   - SUMMON-STRENGTH: STRONG / OVERWHELMING
+  #   - AI: ADVANCED / GENIUS
+  #
+  # Uncomment + modify if creating a custom boss difficulty.
   # ---------------------------------------------------
   custom-difficulty:
 
-    display-name: "<yellow>Emerald Drake - Custom Variant</yellow>"
+    display-name: "<gold><bold>Apex Devourer — Ascended Form</bold></gold>"
 
     # ==================================================
     #  SPEED / OFFENSE
@@ -46,11 +58,11 @@ dragon:
 
     # DragonAttackSpeedKey:
     #   TURTLE, SLOW, MEDIUM, FAST, WHYNOT
-    attack-speed: MEDIUM
+    attack-speed: FAST
 
     # DragonSummonSpeedKey:
     #   TURTLE, SLOW, MEDIUM, FAST, WHYNOT
-    summon-speed: MEDIUM
+    summon-speed: FAST
 
 
     # ==================================================
@@ -59,24 +71,27 @@ dragon:
 
     # DragonScaleStrength:
     #   FRAGILE, WEAK, AVERAGE, THICK, IMPENETRABLE
-    scale-strength: THICK
+    scale-strength: IMPENETRABLE
 
     # DragonBarrierStrengthKey:
     #   FRAGILE, WEAK, AVERAGE, THICK, IMPENETRABLE
-    barrier-strength: AVERAGE
+    barrier-strength: THICK
 
     # DragonSummonStrengthKey:
     #   FRAGILE, WEAK, AVERAGE, STRONG, OVERWHELMING
-    summon-strength: STRONG
+    summon-strength: OVERWHELMING
 
 
     # ==================================================
     #  ARTIFICIAL INTELLIGENCE
     # ==================================================
+    # Boss-tier dragons typically use:
+    #   SMART, ADVANCED, GENIUS
+    # ==================================================
 
     # DragonAIKey:
     #   DUMB, AVERAGE, SMART, ADVANCED, GENIUS
-    ai: SMART
+    ai: ADVANCED
 
 
   # ---------------------------------------------------
@@ -84,11 +99,10 @@ dragon:
   # ---------------------------------------------------
   # Comes from: defaultDragonHealthColors.yml
   #
-  # Supported:
-  #   SIMPLE
-  #   DETAILED
+  # Recommended for bosses:
+  #   DETAILED (more dramatic transitions)
   #
   # Glow + Bossbar are independent.
   # ---------------------------------------------------
-  glow-profile: SIMPLE
-  bossbar-profile: SIMPLE
+  glow-profile: DETAILED
+  bossbar-profile: DETAILED

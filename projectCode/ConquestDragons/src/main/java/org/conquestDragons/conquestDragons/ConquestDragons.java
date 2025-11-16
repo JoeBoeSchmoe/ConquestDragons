@@ -21,7 +21,7 @@ public final class ConquestDragons extends JavaPlugin {
     private static ConquestDragons pluginInstance;
 
     private ConfigurationManager configurationManager;
-    private final boolean premiumEnabled = false;
+    private final boolean premiumEnabled = true;
 
     private CommandManager commandManager;
     private String primaryCommandName; // resolved from plugin.yml at runtime
