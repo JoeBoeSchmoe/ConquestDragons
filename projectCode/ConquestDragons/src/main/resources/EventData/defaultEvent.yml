@@ -6,12 +6,21 @@
 #   defaultEvent.yml  -->  id = "defaultEvent"
 #
 # This represents a full multi-stage Dragon Event:
+#   - LOBBY: pre-fight waiting room
 #   - INITIAL: players fight normal dragons in the arena
 #   - IN_BELLY: selected players are "eaten" and fight inside the belly arena
+#   - POST_BELLY: players who escaped belly, cleaning up remaining dragons
 #   - FINAL: boss dragon spawns once all normal dragons are defeated
 # ===================================================
 
 event:
+
+  # ---------------------------------------------------
+  # ENABLED FLAG
+  # ---------------------------------------------------
+  # If false, this event will be loaded but treated as inactive.
+  # The scheduler / commands should skip running disabled events.
+  enabled: true
 
   # ---------------------------------------------------
   # DISPLAY NAME (MiniMessage)
@@ -29,9 +38,10 @@ event:
 
 
   # ---------------------------------------------------
-  # ARENA REGION (AXIS-ALIGNED BOX)
+  # GLOBAL DRAGON REGION (AXIS-ALIGNED BOX)
+  # - This maps to EventModel.dragonRegion
   # ---------------------------------------------------
-  arena:
+  dragon-region:
     world: "world"
 
     corner-a:
@@ -43,6 +53,131 @@ event:
       x: 150.0
       y: 90.0
       z: 150.0
+
+
+  # ---------------------------------------------------
+  # GLOBAL DRAGON SPAWN
+  # - This maps to EventModel.dragonSpawn
+  # - If omitted, code defaults to center of dragon-region
+  # ---------------------------------------------------
+  dragon-spawn:
+    world: "world"
+    x: 125.5
+    y: 70.0
+    z: 125.5
+    yaw: 0.0
+    pitch: 0.0
+
+
+  # ---------------------------------------------------
+  # PER-STAGE PLAYER AREAS
+  # - This maps to EventModel.playingAreas (Map<EventStageKey, StageArea>)
+  # - Each entry:
+  #     <STAGE-KEY>:
+  #       region: (EventRegion)
+  #       spawn:  (Location)
+  # ---------------------------------------------------
+  stage-areas:
+
+    # LOBBY: waiting room (can be same region as arena, or a separate one)
+    LOBBY:
+      region:
+        world: "world"
+        corner-a:
+          x: 90.0
+          y: 64.0
+          z: 90.0
+        corner-b:
+          x: 160.0
+          y: 80.0
+          z: 160.0
+      spawn:
+        world: "world"
+        x: 125.5
+        y: 66.0
+        z: 125.5
+        yaw: 0.0
+        pitch: 0.0
+
+    # INITIAL: main arena fight (reuse dragon-region here)
+    INITIAL:
+      region:
+        world: "world"
+        corner-a:
+          x: 100.0
+          y: 64.0
+          z: 100.0
+        corner-b:
+          x: 150.0
+          y: 90.0
+          z: 150.0
+      spawn:
+        world: "world"
+        x: 125.5
+        y: 70.0
+        z: 125.5
+        yaw: 0.0
+        pitch: 0.0
+
+    # IN_BELLY: belly arena (small, enclosed area)
+    IN_BELLY:
+      region:
+        world: "world"
+        corner-a:
+          x: 200.0
+          y: 40.0
+          z: 200.0
+        corner-b:
+          x: 210.0
+          y: 50.0
+          z: 210.0
+      spawn:
+        world: "world"
+        x: 205.5
+        y: 45.0
+        z: 205.5
+        yaw: 0.0
+        pitch: 0.0
+
+    # POST_BELLY: back in arena, finishing remaining INITIAL dragons
+    POST_BELLY:
+      region:
+        world: "world"
+        corner-a:
+          x: 100.0
+          y: 64.0
+          z: 100.0
+        corner-b:
+          x: 150.0
+          y: 90.0
+          z: 150.0
+      spawn:
+        world: "world"
+        x: 125.5
+        y: 70.0
+        z: 125.5
+        yaw: 0.0
+        pitch: 0.0
+
+    # FINAL: boss arena (can be same as INITIAL, or tweaked)
+    FINAL:
+      region:
+        world: "world"
+        corner-a:
+          x: 100.0
+          y: 64.0
+          z: 100.0
+        corner-b:
+          x: 150.0
+          y: 90.0
+          z: 150.0
+      spawn:
+        world: "world"
+        x: 125.5
+        y: 72.0
+        z: 125.5
+        yaw: 0.0
+        pitch: 0.0
 
 
   # ---------------------------------------------------
@@ -70,6 +205,10 @@ event:
     # Only used when repeat: MONTHLY
     # day-of-month: 1
 
+    # Optional pre-event countdown reminders (times BEFORE start)
+    # Strings are parsed into Duration offsets: "1H", "30M", "15M", "5M", "1M"
+    pre-start-reminders: [ "1H", "30M", "15M", "5M", "1M" ]
+
 
   # ---------------------------------------------------
   # JOIN WINDOW & REMINDERS
@@ -81,9 +220,124 @@ event:
 
 
   # ---------------------------------------------------
-  # STAGES
+  # REWARDS
+  # ---------------------------------------------------
+  rewards:
+
+    # -----------------------------------------------
+    # UNIVERSAL COMPLETION REWARDS (rolled per player)
+    # -----------------------------------------------
+    completion:
+      - chance: 100.0
+        commands:
+          - "give {player} minecraft:emerald 3"
+          - "give {player} minecraft:experience_bottle 8"
+
+      - chance: 35.0
+        commands:
+          - "give {player} minecraft:elytra 1"
+
+
+    # -----------------------------------------------
+    # RANK-SPECIFIC REWARDS (top 10)
+    # -----------------------------------------------
+    # Rank = final damage rank (1 = highest damage)
+    # Chance = double percent (0.0 → 100.0)
+    # Commands executed only if random roll succeeds.
+    # -----------------------------------------------
+    ranking:
+
+      # Rank 1 — Best rewards
+      - rank: 1
+        chance: 100.0
+        commands:
+          - "give {player} minecraft:netherite_ingot 2"
+          - "give {player} minecraft:dragon_head 1"
+
+      # Rank 2
+      - rank: 2
+        chance: 80.0
+        commands:
+          - "give {player} minecraft:netherite_scrap 6"
+          - "give {player} minecraft:totem_of_undying 1"
+
+      # Rank 3
+      - rank: 3
+        chance: 70.0
+        commands:
+          - "give {player} minecraft:netherite_scrap 4"
+
+      # Rank 4
+      - rank: 4
+        chance: 60.0
+        commands:
+          - "give {player} minecraft:diamond 6"
+
+      # Rank 5
+      - rank: 5
+        chance: 55.0
+        commands:
+          - "give {player} minecraft:diamond 4"
+
+      # Rank 6
+      - rank: 6
+        chance: 50.0
+        commands:
+          - "give {player} minecraft:golden_apple 2"
+
+      # Rank 7
+      - rank: 7
+        chance: 45.0
+        commands:
+          - "give {player} minecraft:emerald 10"
+
+      # Rank 8
+      - rank: 8
+        chance: 40.0
+        commands:
+          - "give {player} minecraft:experience_bottle 16"
+
+      # Rank 9
+      - rank: 9
+        chance: 35.0
+        commands:
+          - "give {player} minecraft:iron_ingot 16"
+
+      # Rank 10
+      - rank: 10
+        chance: 30.0
+        commands:
+          - "give {player} minecraft:gold_ingot 16"
+
+  # ---------------------------------------------------
+  # STAGES (LOGIC PHASES, NOT GEOMETRY)
+  # These map directly to EventStageKey values.
+  # Geometry comes from stage-areas above.
   # ---------------------------------------------------
   stages:
+
+    # ================================================
+    # 0) LOBBY STAGE - PRE-COMBAT WAITING ROOM
+    # ================================================
+    - key: LOBBY
+
+      start-commands:
+        - "say [DRAGON EVENT] The ritual will begin soon!"
+        - "title @a title {\"text\":\"Ritual of the Devourer\",\"color\":\"gold\"}"
+        - "title @a subtitle {\"text\":\"Prepare yourselves...\",\"color\":\"dark_purple\"}"
+
+      timed-commands:
+        - delay-ticks: 200
+          commands:
+            - "say [DRAGON EVENT] The air crackles with anticipation..."
+        - delay-ticks: 400
+          commands:
+            - "say [DRAGON EVENT] The dragons stir in the distance..."
+
+      end-commands:
+        - "say [DRAGON EVENT] The ritual begins now!"
+        - "title @a clear"
+
 
     # ================================================
     # 1) INITIAL STAGE - NORMAL DRAGON FIGHT
@@ -134,7 +388,26 @@ event:
 
 
     # ================================================
-    # 3) FINAL STAGE - BOSS FIGHT + CLEANUP
+    # 3) POST_BELLY STAGE - CLEANUP AFTER BELLY
+    # ================================================
+    - key: POST_BELLY
+
+      start-commands:
+        - "say [DRAGON EVENT] Survivors of the belly return to the fray!"
+        - "title @a title {\"text\":\"Back to the Arena\",\"color\":\"gold\"}"
+        - "title @a subtitle {\"text\":\"Finish off the remaining drakes.\",\"color\":\"red\"}"
+
+      timed-commands:
+        - delay-ticks: 200
+          commands:
+            - "say [DRAGON EVENT] The dragons are weakening..."
+
+      end-commands:
+        - "say [DRAGON EVENT] All have escaped the belly. The final challenge awaits..."
+
+
+    # ================================================
+    # 4) FINAL STAGE - BOSS FIGHT + CLEANUP
     # ================================================
     - key: FINAL
 

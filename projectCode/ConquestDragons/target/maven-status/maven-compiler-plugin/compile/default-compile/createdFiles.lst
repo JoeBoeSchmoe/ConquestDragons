@@ -4,6 +4,7 @@ org\conquestDragons\conquestDragons\responseHandler\effectHandler\ParticleRespon
 org\conquestDragons\conquestDragons\eventHandler\EventModel$EventSchedule.class
 org\conquestDragons\conquestDragons\responseHandler\messageModels\GenericMessageModels.class
 org\conquestDragons\conquestDragons\eventHandler\EventModel.class
+org\conquestDragons\conquestDragons\eventHandler\EventModel$RewardSpec.class
 org\conquestDragons\conquestDragons\configurationHandler\ConfigurationManager.class
 org\conquestDragons\conquestDragons\dragonHandler\keyHandler\difficultyKeys\DragonBarrierStrengthKey.class
 org\conquestDragons\conquestDragons\commandHandler\AutoTabManager.class
@@ -19,8 +20,8 @@ org\conquestDragons\conquestDragons\cooldownHandler\CommandCooldownManager.class
 org\conquestDragons\conquestDragons\configurationHandler\configurationFiles\dataFiles\EventDataFiles.class
 org\conquestDragons\conquestDragons\dragonHandler\keyHandler\difficultyKeys\DragonAttackSpeedKey.class
 org\conquestDragons\conquestDragons\commandHandler\subcommandHandler\AdminCommandManager.class
-org\conquestDragons\conquestDragons\eventHandler\EventModel$ArenaRegion.class
 org\conquestDragons\conquestDragons\responseHandler\effectHandler\TitleResponseManager.class
+org\conquestDragons\conquestDragons\eventHandler\EventSequenceManager.class
 org\conquestDragons\conquestDragons\configurationHandler\configurationFiles\defaultValueFiles\DefaultDifficultyValuesFile.class
 org\conquestDragons\conquestDragons\configurationHandler\configurationFiles\integrationFiles\VaultManager.class
 org\conquestDragons\conquestDragons\responseHandler\messageModels\UserMessageModels.class
@@ -38,6 +39,8 @@ org\conquestDragons\conquestDragons\configurationHandler\configurationFiles\inte
 org\conquestDragons\conquestDragons\configurationHandler\configurationFiles\integrationFiles\WorldGuardManager.class
 org\conquestDragons\conquestDragons\dragonHandler\keyHandler\difficultyKeys\DragonSummonSpeedKey.class
 org\conquestDragons\conquestDragons\dragonHandler\keyHandler\difficultyKeys\DragonAIKey.class
+org\conquestDragons\conquestDragons\eventHandler\EventModel$RankingRewardSpec.class
+org\conquestDragons\conquestDragons\eventHandler\EventModel$StageArea.class
 org\conquestDragons\conquestDragons\cooldownHandler\GUICooldownManager.class
 org\conquestDragons\conquestDragons\responseHandler\effectHandler\BossBarResponseManager.class
 org\conquestDragons\conquestDragons\dragonHandler\keyHandler\DragonGlowColorHealthKey.class
@@ -57,5 +60,6 @@ org\conquestDragons\conquestDragons\responseHandler\effectHandler\EffectResponse
 org\conquestDragons\conquestDragons\ConquestDragons.class
 org\conquestDragons\conquestDragons\dragonHandler\DragonDifficultyModel.class
 org\conquestDragons\conquestDragons\eventHandler\EventManager.class
+org\conquestDragons\conquestDragons\eventHandler\EventModel$EventRegion.class
 org\conquestDragons\conquestDragons\eventHandler\EventManager$ScheduledEvent.class
 org\conquestDragons\conquestDragons\configurationHandler\configurationFiles\ConfigFile.class

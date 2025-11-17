@@ -6,6 +6,7 @@
 
 messages:
   user:
+
     # 💡 USER HELP USAGE (nudge)
     help-usage:
       text:
@@ -21,14 +22,14 @@ messages:
       prefix: true
       sound: { type: UI_BUTTON_CLICK, volume: 1.0, pitch: 1.0 }
       particles: [ { type: ENCHANTMENT_TABLE, count: 4, offset: [0.2, 0.3, 0.2], speed: 0.01 } ]
-      bossbar: { text: "<yellow>Need Help?", color: "YELLOW", overlay: "PROGRESS", time: 60, progress: 0.5 }
+      bossbar: { text: "<yellow>Need Help?</yellow>", color: "YELLOW", overlay: "PROGRESS", time: 60, progress: 0.5 }
       actionbar: { text: "<gray>Try /dragons help", duration: 60 }
       title:
         text: "<gold><bold>dragons Help</bold></gold>"
         subtitle: "<gray>Use /dragons help to get started."
         timings: { fadeIn: 10, stay: 40, fadeOut: 20 }
 
-    # 📘 USER HELP (page)
+    # 📘 USER HELP PAGE
     help:
       text:
         - ""
@@ -54,4 +55,360 @@ messages:
         subtitle: "<gray>See available player commands."
         timings: { fadeIn: 10, stay: 40, fadeOut: 20 }
 
-# End Of Config :D
+    countdown:
+      text:
+        - "<#7C3882><bold>⏳ Dragons attacking in <gold>{time}</gold>!</bold></#7C3882>"
+        - "<gray>Prepare yourselves — danger approaches.</gray>"
+        - "<yellow>Use <gold>/dragons join</gold> when the gates open.</yellow>"
+      hover: "<gray>The assault draws near…</gray>"
+      click: ""
+      clickType: "NONE"
+      components: [ ]
+      prefix: true
+      sound: { type: BLOCK_NOTE_BLOCK_BELL, volume: 1.0, pitch: 1.2 }
+      particles: [ { type: ENCHANTMENT_TABLE, count: 8, offset: [0.3,0.5,0.3], speed: 0.02 }, { type: DRAGON_BREATH, count: 6, offset: [0.4,0.8,0.4], speed: 0.03 } ]
+      bossbar: { text: "<dark_purple>🐉 Dragons attacking in <gold>{time}</gold>…</dark_purple>", color: "PURPLE", overlay: "PROGRESS", time: 80, progress: 1.0 }
+      actionbar: { text: "<yellow>⏳ Dragons arrive in <gold>{time}</gold>!</yellow>", duration: 70 }
+      title:
+        text: "<dark_purple><bold>Dragon Assault Incoming!</bold></dark_purple>"
+        subtitle: "<gray>Time remaining: <gold>{time}</gold></gray>"
+        timings: { fadeIn: 10, stay: 45, fadeOut: 20 }
+
+    # 🐉 EVENT START
+    EventStart:
+      text:
+        - "<#7C3882><bold>🐉 The Dragon Event has begun!</bold></#7C3882>"
+        - "<gray>A powerful dragon stirs within the arena...</gray>"
+        - "<yellow>Use <gold>/dragons join</gold> to enter the battle.</yellow>"
+      hover: "<gray>Click to join the dragon event.</gray>"
+      click: "/dragons join"
+      clickType: "RUN_COMMAND"
+      components: [ ]
+      prefix: true
+      sound: { type: ENTITY_ENDER_DRAGON_GROWL, volume: 1.0, pitch: 1.0 }
+      particles: [ { type: DRAGON_BREATH, count: 20, offset: [0.5, 0.8, 0.5], speed: 0.02 } ]
+      bossbar: { }
+      actionbar: { text: "<yellow>Use <gold>/dragons join</gold> to enter!", duration: 120 }
+      title:
+        text: "<dark_purple><bold>Dragon Event Started!</bold></dark_purple>"
+        subtitle: "<gray>Join now and face the dragons.</gray>"
+        timings: { fadeIn: 10, stay: 60, fadeOut: 20 }
+
+    # ⏰ EVENT START REMINDER
+    EventStartReminder:
+      text:
+        - "<gold>⏰ The Dragon Event is still open!</gold>"
+        - "<gray>You can still join the fight.</gray>"
+        - "<yellow>Use <gold>/dragons join</gold> before the gates close.</yellow>"
+      hover: "<gray>Click to autofill /dragons join.</gray>"
+      click: "/dragons join"
+      clickType: "SUGGEST_COMMAND"
+      components: [ ]
+      prefix: true
+      sound: { type: BLOCK_NOTE_BLOCK_BELL, volume: 1.0, pitch: 1.3 }
+      particles: [ { type: ENCHANTMENT_TABLE, count: 8, offset: [0.3, 0.5, 0.3], speed: 0.02 } ]
+      bossbar: { }
+      actionbar: { text: "<gray>Last call! Use <yellow>/dragons join</yellow>.</gray>", duration: 80 }
+      title:
+        text: "<gold><bold>Dragon Event Reminder</bold></gold>"
+        subtitle: "<gray>Join before the window closes.</gray>"
+        timings: { fadeIn: 10, stay: 40, fadeOut: 20 }
+
+    # =========================
+    # 🏟 LOBBY STAGE MESSAGES
+    # =========================
+    lobby-stage:
+
+      # 🏟 LOBBY STAGE — START (enter lobby / join window open)
+      start:
+        text:
+          - "<aqua><bold>🏟 Welcome to the Dragon Arena!</bold></aqua>"
+          - "<gray>The event has opened — you are now in the lobby.</gray>"
+          - "<yellow>Prepare yourself while the join window remains open.</yellow>"
+        hover: "<gray>You are in the pre-event lobby.</gray>"
+        click: ""
+        clickType: "NONE"
+        components: [ ]
+        prefix: true
+        sound: { type: UI_BUTTON_CLICK, volume: 1.0, pitch: 1.0 }
+        particles: [ { type: ENCHANTMENT_TABLE, count: 10, offset: [0.3, 0.6, 0.3], speed: 0.02 } ]
+        bossbar: { }
+        actionbar: { text: "<aqua>Join window open — get ready!</aqua>", duration: 70 }
+        title:
+          text: "<aqua><bold>Lobby Stage</bold></aqua>"
+          subtitle: "<gray>The event begins soon…</gray>"
+          timings: { fadeIn: 10, stay: 45, fadeOut: 20 }
+
+      # 🕒 LOBBY STAGE — TIMED MESSAGE (countdown during join window)
+      timed:
+        text:
+          - "<yellow>⏱ The event is starting soon!</yellow>"
+          - "<gray>Use this time to prepare and gear up.</gray>"
+        hover: "<gray>Event countdown in progress.</gray>"
+        click: ""
+        clickType: "NONE"
+        components: [ ]
+        prefix: false
+        sound: { type: BLOCK_NOTE_BLOCK_HAT, volume: 1.0, pitch: 1.4 }
+        particles: [ { type: SPELL_WITCH, count: 6, offset: [0.2, 0.4, 0.2], speed: 0.04 } ]
+        bossbar: { }
+        actionbar: { text: "<yellow>The event begins shortly…</yellow>", duration: 60 }
+
+      # 🚪 LOBBY STAGE — END (join window closes)
+      end:
+        text:
+          - "<green><bold>✔ Join Window Closed!</bold></green>"
+          - "<gray>No more players may enter.</gray>"
+          - "<yellow>The event is about to begin…</yellow>"
+        hover: "<gray>Get ready — combat begins momentarily!</gray>"
+        click: ""
+        clickType: "NONE"
+        components: [ ]
+        prefix: true
+        sound: { type: ENTITY_EXPERIENCE_ORB_PICKUP, volume: 1.0, pitch: 1.2 }
+        particles: [ { type: VILLAGER_HAPPY, count: 10, offset: [0.2, 0.4, 0.2], speed: 0.05 } ]
+        bossbar: { }
+        actionbar: { text: "<green>Join window closed — prepare for battle!</green>", duration: 70 }
+        title:
+          text: "<green><bold>Lobby Closed</bold></green>"
+          subtitle: "<gray>The event is starting…</gray>"
+          timings: { fadeIn: 10, stay: 45, fadeOut: 20 }
+
+    # =========================
+    # ⚔ INITIAL STAGE MESSAGES
+    # =========================
+    initial-stage:
+      # ⚔ INITIAL STAGE START
+      start:
+        text:
+          - "<green><bold>⚔ The battle begins!</bold></green>"
+          - "<gray>Initial dragons have entered the arena.</gray>"
+          - "<yellow>Fight together and bring them down!</yellow>"
+        hover: "<gray>Brace yourself for the first wave.</gray>"
+        click: ""
+        clickType: "NONE"
+        components: [ ]
+        prefix: true
+        sound: { type: ENTITY_ENDER_DRAGON_GROWL, volume: 1.2, pitch: 1.2 }
+        particles: [ { type: DRAGON_BREATH, count: 15, offset: [0.3, 0.7, 0.3], speed: 0.02 } ]
+        bossbar: { }
+        actionbar: { text: "<yellow>Initial dragons have appeared!</yellow>", duration: 80 }
+        title:
+          text: "<green><bold>Stage 1: Initial Dragons</bold></green>"
+          subtitle: "<gray>Fight the opening wave.</gray>"
+          timings: { fadeIn: 10, stay: 50, fadeOut: 20 }
+
+      # ⏱ INITIAL STAGE TIMED MESSAGE
+      timed:
+        text:
+          - "<aqua>⏱ The initial battle continues!</aqua>"
+          - "<gray>Stay alert—more dragons may descend soon.</gray>"
+        hover: "<gray>Keep fighting!</gray>"
+        click: ""
+        clickType: "NONE"
+        components: [ ]
+        prefix: false
+        sound: { type: BLOCK_NOTE_BLOCK_PLING, volume: 1.0, pitch: 1.5 }
+        particles: [ { type: SPELL_WITCH, count: 10, offset: [0.2, 0.4, 0.2], speed: 0.05 } ]
+        bossbar: { }
+        actionbar: { text: "<gray>Hold strong—the fight isn’t over.</gray>", duration: 60 }
+
+      # 🏁 INITIAL STAGE END
+      end:
+        text:
+          - "<yellow><bold>🏁 Initial Stage Complete!</bold></yellow>"
+          - "<gray>The first wave of dragons has fallen.</gray>"
+          - "<green>Prepare for the next challenge...</green>"
+        hover: "<gray>Get ready for the next stage.</gray>"
+        click: ""
+        clickType: "NONE"
+        components: [ ]
+        prefix: true
+        sound: { type: ENTITY_PLAYER_LEVELUP, volume: 1.0, pitch: 1.2 }
+        particles: [ { type: FIREWORK, count: 2, offset: [0.4, 0.8, 0.4], speed: 1.0 } ]
+        bossbar: { }
+        actionbar: { text: "<green>Prepare for the next wave!</green>", duration: 70 }
+        title:
+          text: "<yellow><bold>Wave Complete!</bold></yellow>"
+          subtitle: "<gray>Get ready for the next stage...</gray>"
+          timings: { fadeIn: 10, stay: 40, fadeOut: 20 }
+
+    # =========================
+    # 🟥 IN BELLY STAGE MESSAGES
+    # =========================
+    in-belly-stage:
+      # 🟥 IN BELLY STAGE — START
+      start:
+        text:
+          - "<red><bold>⚠ The dragon enters a frenzy!</bold></red>"
+          - "<gray>You have been swallowed into the dragon’s belly!</gray>"
+          - "<yellow>Survive the onslaught to escape!</yellow>"
+        hover: "<gray>The belly phase has begun — extreme danger.</gray>"
+        click: ""
+        clickType: "NONE"
+        components: [ ]
+        prefix: true
+        sound: { type: ENTITY_ENDER_DRAGON_GROWL, volume: 1.3, pitch: 0.9 }
+        particles: [ { type: DRAGON_BREATH, count: 25, offset: [0.4, 1.0, 0.4], speed: 0.04 } ]
+        bossbar: { }
+        actionbar: { text: "<red><bold>BELLY PHASE — HIGH THREAT!</bold></red>", duration: 90 }
+        title:
+          text: "<dark_red><bold>⚠ Belly Phase!</bold></dark_red>"
+          subtitle: "<gray>The dragon grows desperate and enraged.</gray>"
+          timings: { fadeIn: 10, stay: 50, fadeOut: 20 }
+
+      # 🟥 IN BELLY STAGE — TIMED
+      timed:
+        text:
+          - "<red>⏱ The dragon’s fury intensifies!</red>"
+          - "<gray>Avoid deadly attacks and search for a way out.</gray>"
+        hover: "<gray>Stay sharp — the belly phase grows harsher.</gray>"
+        click: ""
+        clickType: "NONE"
+        components: [ ]
+        prefix: false
+        sound: { type: BLOCK_NOTE_BLOCK_BASS, volume: 1.0, pitch: 0.6 }
+        particles: [ { type: LAVA, count: 8, offset: [0.2, 0.4, 0.2], speed: 0.01 } ]
+        bossbar: { }
+        actionbar: { text: "<dark_red>⚠ Danger Level Rising…</dark_red>", duration: 60 }
+
+      # 🟥 IN BELLY STAGE — END (per-player escape)
+      end:
+        text:
+          - "<yellow><bold>✔ You escape the dragon’s belly!</bold></yellow>"
+          - "<gray>The beast spews you back into the arena.</gray>"
+          - "<green>Rejoin the fight and finish what you started!</green>"
+        hover: "<gray>The danger shifts back to the arena.</gray>"
+        click: ""
+        clickType: "NONE"
+        components: [ ]
+        prefix: true
+        sound: { type: ENTITY_PLAYER_LEVELUP, volume: 1.0, pitch: 1.3 }
+        particles: [ { type: FIREWORK, count: 2, offset: [0.5, 0.9, 0.5], speed: 1.0 } ]
+        bossbar: { }
+        actionbar: { text: "<green>You’ve escaped — get back in the fight!</green>", duration: 70 }
+        title:
+          text: "<yellow><bold>Belly Escape!</bold></yellow>"
+          subtitle: "<gray>You are free… for now.</gray>"
+          timings: { fadeIn: 10, stay: 45, fadeOut: 20 }
+
+    # =========================
+    # 🟦 POST-BELLY STAGE MESSAGES
+    # (Players back in arena finishing remaining initial dragons)
+    # =========================
+    post-belly-stage:
+      # 🟦 POST-BELLY — START (on first return to arena)
+      start:
+        text:
+          - "<blue><bold>⬆ You return to the arena!</bold></blue>"
+          - "<gray>The battle with the remaining dragons continues.</gray>"
+          - "<yellow>Focus your attacks and finish them off!</yellow>"
+        hover: "<gray>You’ve rejoined the surface fight.</gray>"
+        click: ""
+        clickType: "NONE"
+        components: [ ]
+        prefix: true
+        sound: { type: ENTITY_ENDER_DRAGON_GROWL, volume: 1.1, pitch: 1.0 }
+        particles: [ { type: DRAGON_BREATH, count: 12, offset: [0.3, 0.7, 0.3], speed: 0.02 } ]
+        bossbar: { }
+        actionbar: { text: "<blue>Back in the arena — help finish the dragons!</blue>", duration: 80 }
+        title:
+          text: "<blue><bold>Stage 3: Return to Battle</bold></blue>"
+          subtitle: "<gray>Support your allies and end this wave.</gray>"
+          timings: { fadeIn: 10, stay: 45, fadeOut: 20 }
+
+      # 🟦 POST-BELLY — TIMED (while some stage-1 dragons remain)
+      timed:
+        text:
+          - "<aqua>⏱ The arena grows quieter…</aqua>"
+          - "<gray>Only a few dragons remain. Hunt them down!</gray>"
+        hover: "<gray>Sweep the arena and finish the remaining threats.</gray>"
+        click: ""
+        clickType: "NONE"
+        components: [ ]
+        prefix: false
+        sound: { type: BLOCK_NOTE_BLOCK_BELL, volume: 1.0, pitch: 1.4 }
+        particles: [ { type: ENCHANTMENT_TABLE, count: 10, offset: [0.2, 0.4, 0.2], speed: 0.03 } ]
+        bossbar: { }
+        actionbar: { text: "<aqua>Track down the last dragons!</aqua>", duration: 60 }
+
+      # 🟦 POST-BELLY — END (all initial dragons dead, FINAL about to begin)
+      end:
+        text:
+          - "<gold><bold>✅ All initial dragons are defeated!</bold></gold>"
+          - "<gray>The arena falls silent… for a moment.</gray>"
+          - "<light_purple>The true threat is about to awaken.</light_purple>"
+        hover: "<gray>Brace for the final confrontation.</gray>"
+        click: ""
+        clickType: "NONE"
+        components: [ ]
+        prefix: true
+        sound: { type: ENTITY_PLAYER_LEVELUP, volume: 1.0, pitch: 1.4 }
+        particles: [ { type: FIREWORK, count: 3, offset: [0.5, 0.9, 0.5], speed: 1.2 } ]
+        bossbar: { }
+        actionbar: { text: "<light_purple>Prepare yourselves — the final foe approaches.</light_purple>", duration: 80 }
+        title:
+          text: "<gold><bold>Wave Cleared!</bold></gold>"
+          subtitle: "<gray>The final challenge is near.</gray>"
+          timings: { fadeIn: 10, stay: 50, fadeOut: 20 }
+
+    # =========================
+    # 🟪 FINAL STAGE MESSAGES
+    # =========================
+    final-stage:
+      # 🟪 FINAL STAGE — START
+      start:
+        text:
+          - "<dark_purple><bold>💀 FINAL STAGE BEGINS!</bold></dark_purple>"
+          - "<gray>The true dragon unleashes its full might!</gray>"
+          - "<yellow>This is the final showdown — give everything you’ve got!</yellow>"
+        hover: "<gray>The dragon prepares its ultimate attacks.</gray>"
+        click: ""
+        clickType: "NONE"
+        components: [ ]
+        prefix: true
+        sound: { type: ENTITY_ENDER_DRAGON_GROWL, volume: 1.5, pitch: 0.8 }
+        particles: [ { type: ENCHANTMENT_TABLE, count: 20, offset: [0.4,1.0,0.4], speed: 0.03 } ]
+        bossbar: { }
+        actionbar: { text: "<light_purple><bold>FINAL STAGE — FIGHT FOR VICTORY!</bold></light_purple>", duration: 100 }
+        title:
+          text: "<dark_purple><bold>Final Stage!</bold></dark_purple>"
+          subtitle: "<gray>The fate of the arena rests with you.</gray>"
+          timings: { fadeIn: 10, stay: 60, fadeOut: 20 }
+
+      # 🟪 FINAL STAGE — TIMED
+      timed:
+        text:
+          - "<light_purple>⏱ The final battle rages on!</light_purple>"
+          - "<gray>Push through — the dragon is nearly defeated.</gray>"
+        hover: "<gray>Stay focused — victory is near.</gray>"
+        click: ""
+        clickType: "NONE"
+        components: [ ]
+        prefix: false
+        sound: { type: BLOCK_NOTE_BLOCK_CHIME, volume: 1.0, pitch: 1.6 }
+        particles: [ { type: SPELL_WITCH, count: 12, offset: [0.3,0.6,0.3], speed: 0.05 } ]
+        bossbar: { }
+        actionbar: { text: "<light_purple>⚔ Keep pushing — final stage ongoing!</light_purple>", duration: 60 }
+
+      # 🟪 FINAL STAGE — END
+      end:
+        text:
+          - "<gold><bold>🏆 FINAL STAGE COMPLETE!</bold></gold>"
+          - "<gray>The dragon’s power collapses…</gray>"
+          - "<green>The beast is defeated — the realm is safe!</green>"
+        hover: "<gray>The final foe has fallen.</gray>"
+        click: ""
+        clickType: "NONE"
+        components: [ ]
+        prefix: true
+        sound: { type: ENTITY_ENDER_DRAGON_DEATH, volume: 1.0, pitch: 1.0 }
+        particles: [ { type: FIREWORK, count: 5, offset: [0.5,1.0,0.5], speed: 1.2 } ]
+        bossbar: { }
+        actionbar: { text: "<yellow>Congratulations — the dragon has been slain!</yellow>", duration: 80 }
+        title:
+          text: "<gold><bold>Stage Complete!</bold></gold>"
+          subtitle: "<gray>The dragon falters — the end is near.</gray>"
+          timings: { fadeIn: 10, stay: 50, fadeOut: 20 }
+
+# End Of Config :)

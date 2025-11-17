@@ -25,7 +25,7 @@ import java.util.logging.Level;
  * Responsibilities:
  *  - Scan EventData/ for *.yml
  *  - Load each event definition (event: root)
- *  - Resolve arena, belly trigger, schedule, stages, etc.
+ *  - Resolve dragon-region, dragon-spawn, stage-areas, belly trigger, schedule, stages, rewards, etc.
  *  - Push all EventModel instances into EventManager
  *
  * This class is meant to be called from plugin startup / reload.
@@ -99,6 +99,11 @@ public final class EventDataFiles {
         String displayName = root.getString("display-name", id);
 
         // -------------------------
+        // Enabled flag (optional, default true)
+        // -------------------------
+        boolean enabled = root.getBoolean("enabled", true);
+
+        // -------------------------
         // Dragon IDs
         // -------------------------
         List<String> dragonIds = root.getStringList("dragon-ids");
@@ -111,17 +116,17 @@ public final class EventDataFiles {
         }
 
         // -------------------------
-        // Arena region
+        // Global dragon-region (axis-aligned box for dragons)
         // -------------------------
-        ConfigurationSection arenaSec = root.getConfigurationSection("arena");
-        if (arenaSec == null) {
-            plugin.getLogger().warning("⚠️  Event '" + id + "' missing 'arena' section. Skipping this event.");
+        ConfigurationSection dragonRegionSec = root.getConfigurationSection("dragon-region");
+        if (dragonRegionSec == null) {
+            plugin.getLogger().warning("⚠️  Event '" + id + "' missing 'dragon-region' section. Skipping this event.");
             return null;
         }
 
-        String worldName = arenaSec.getString("world");
+        String worldName = dragonRegionSec.getString("world");
         if (worldName == null || worldName.isBlank()) {
-            plugin.getLogger().warning("⚠️  Event '" + id + "' arena missing 'world'. Skipping this event.");
+            plugin.getLogger().warning("⚠️  Event '" + id + "' dragon-region missing 'world'. Skipping this event.");
             return null;
         }
 
@@ -132,15 +137,37 @@ public final class EventDataFiles {
             return null;
         }
 
-        ConfigurationSection cornerASec = arenaSec.getConfigurationSection("corner-a");
-        ConfigurationSection cornerBSec = arenaSec.getConfigurationSection("corner-b");
+        ConfigurationSection cornerASec = dragonRegionSec.getConfigurationSection("corner-a");
+        ConfigurationSection cornerBSec = dragonRegionSec.getConfigurationSection("corner-b");
         if (cornerASec == null || cornerBSec == null) {
-            plugin.getLogger().warning("⚠️  Event '" + id + "' arena missing 'corner-a' or 'corner-b'. Skipping.");
+            plugin.getLogger().warning("⚠️  Event '" + id + "' dragon-region missing 'corner-a' or 'corner-b'. Skipping.");
             return null;
         }
 
-        Location cornerA = parseLocation(world, cornerASec);
-        Location cornerB = parseLocation(world, cornerBSec);
+        Location dragonCornerA = parseLocation(world, cornerASec);
+        Location dragonCornerB = parseLocation(world, cornerBSec);
+
+        // -------------------------
+        // Optional dragon-spawn
+        // -------------------------
+        Location dragonSpawn = null;
+        ConfigurationSection spawnSec = root.getConfigurationSection("dragon-spawn");
+        if (spawnSec != null) {
+            String spawnWorldName = spawnSec.getString("world", worldName);
+            World spawnWorld = Bukkit.getWorld(spawnWorldName);
+            if (spawnWorld == null) {
+                plugin.getLogger().warning("⚠️  Event '" + id + "' dragon-spawn references world '" +
+                        spawnWorldName + "' which is not loaded. Using center of dragon-region instead.");
+            } else {
+                dragonSpawn = parseLocationWithOrientation(spawnWorld, spawnSec);
+            }
+        }
+
+        // -------------------------
+        // Stage-areas (per-stage EventRegion + spawn)
+        // -------------------------
+        Map<EventStageKey, EventModel.StageArea> stageAreas =
+                parseStageAreas(plugin, id, root, worldName);
 
         // -------------------------
         // Belly trigger
@@ -169,13 +196,13 @@ public final class EventDataFiles {
         Duration joinReminderInterval = Duration.ofSeconds(joinReminderSeconds);
 
         // -------------------------
-        // Schedule (repeat + time-of-day)
+        // Schedule (repeat + time-of-day + pre-start-reminders)
         // -------------------------
         ConfigurationSection scheduleSec = root.getConfigurationSection("schedule");
         EventModel.EventSchedule schedule = parseSchedule(plugin, id, scheduleSec);
 
         // -------------------------
-        // Stages
+        // Stages (logic stages, not geometry)
         // -------------------------
         List<EventStageModel> stages = parseStages(plugin, id, root);
         if (stages.isEmpty()) {
@@ -184,22 +211,35 @@ public final class EventDataFiles {
         }
 
         // -------------------------
-        // Construct model
+        // Rewards (completion + ranking)
+        // -------------------------
+        List<EventModel.RewardSpec> completionRewards =
+                parseCompletionRewards(plugin, id, root);
+        List<EventModel.RankingRewardSpec> rankingRewards =
+                parseRankingRewards(plugin, id, root);
+
+        // -------------------------
+        // Construct model (FULL ctor)
         // -------------------------
         try {
             return new EventModel(
                     id,
                     displayName,
+                    enabled,
                     dragonIds,
                     bossDragonId,
-                    cornerA,
-                    cornerB,
+                    dragonCornerA,
+                    dragonCornerB,
+                    dragonSpawn,
+                    stageAreas,
                     bellyTriggerHealthFraction,
                     maxDuration,
                     joinWindowLength,
                     joinReminderInterval,
                     schedule,
-                    stages
+                    stages,
+                    completionRewards,
+                    rankingRewards
             );
         } catch (IllegalArgumentException ex) {
             plugin.getLogger().log(Level.WARNING,
@@ -212,11 +252,111 @@ public final class EventDataFiles {
     // Helpers: locations
     // ---------------------------------------------------------------------
 
+    /** Simple x/y/z location (no yaw/pitch). */
     private static Location parseLocation(World world, ConfigurationSection sec) {
         double x = sec.getDouble("x");
         double y = sec.getDouble("y");
         double z = sec.getDouble("z");
         return new Location(world, x, y, z);
+    }
+
+    /** Location with optional yaw/pitch. */
+    private static Location parseLocationWithOrientation(World world, ConfigurationSection sec) {
+        double x = sec.getDouble("x");
+        double y = sec.getDouble("y");
+        double z = sec.getDouble("z");
+        float yaw = (float) sec.getDouble("yaw", 0.0);
+        float pitch = (float) sec.getDouble("pitch", 0.0);
+        return new Location(world, x, y, z, yaw, pitch);
+    }
+
+    // ---------------------------------------------------------------------
+    // Helpers: stage-areas → Map<EventStageKey, StageArea>
+    // ---------------------------------------------------------------------
+
+    private static Map<EventStageKey, EventModel.StageArea> parseStageAreas(ConquestDragons plugin,
+                                                                            String eventId,
+                                                                            ConfigurationSection root,
+                                                                            String defaultWorldName) {
+        ConfigurationSection stageAreasRoot = root.getConfigurationSection("stage-areas");
+        if (stageAreasRoot == null) {
+            return Collections.emptyMap();
+        }
+
+        Map<EventStageKey, EventModel.StageArea> result = new EnumMap<>(EventStageKey.class);
+
+        for (String keyName : stageAreasRoot.getKeys(false)) {
+            EventStageKey stageKey;
+            try {
+                stageKey = EventStageKey.valueOf(keyName.toUpperCase(Locale.ROOT));
+            } catch (IllegalArgumentException ex) {
+                plugin.getLogger().warning("⚠️  Event '" + eventId + "' stage-areas has invalid key '" +
+                        keyName + "'. Skipping this stage-area.");
+                continue;
+            }
+
+            ConfigurationSection stageAreaSec = stageAreasRoot.getConfigurationSection(keyName);
+            if (stageAreaSec == null) {
+                continue;
+            }
+
+            ConfigurationSection regionSec = stageAreaSec.getConfigurationSection("region");
+            ConfigurationSection spawnSec = stageAreaSec.getConfigurationSection("spawn");
+            if (regionSec == null || spawnSec == null) {
+                plugin.getLogger().warning("⚠️  Event '" + eventId + "' stage-areas." + keyName +
+                        " missing 'region' or 'spawn'. Skipping this stage-area.");
+                continue;
+            }
+
+            // Region world
+            String regionWorldName = regionSec.getString("world", defaultWorldName);
+            World regionWorld = Bukkit.getWorld(regionWorldName);
+            if (regionWorld == null) {
+                plugin.getLogger().warning("⚠️  Event '" + eventId + "' stage-areas." + keyName +
+                        " region references world '" + regionWorldName + "' which is not loaded. Skipping.");
+                continue;
+            }
+
+            ConfigurationSection regionCornerASec = regionSec.getConfigurationSection("corner-a");
+            ConfigurationSection regionCornerBSec = regionSec.getConfigurationSection("corner-b");
+            if (regionCornerASec == null || regionCornerBSec == null) {
+                plugin.getLogger().warning("⚠️  Event '" + eventId + "' stage-areas." + keyName +
+                        " region missing 'corner-a' or 'corner-b'. Skipping.");
+                continue;
+            }
+
+            Location regionCornerA = parseLocation(regionWorld, regionCornerASec);
+            Location regionCornerB = parseLocation(regionWorld, regionCornerBSec);
+            EventModel.EventRegion stageRegion;
+            try {
+                stageRegion = new EventModel.EventRegion(regionCornerA, regionCornerB);
+            } catch (IllegalArgumentException ex) {
+                plugin.getLogger().warning("⚠️  Event '" + eventId + "' stage-areas." + keyName +
+                        " has invalid region corners. Skipping this stage-area.");
+                continue;
+            }
+
+            // Spawn world (defaults to region world)
+            String spawnWorldName = spawnSec.getString("world", regionWorldName);
+            World spawnWorld = Bukkit.getWorld(spawnWorldName);
+            if (spawnWorld == null) {
+                plugin.getLogger().warning("⚠️  Event '" + eventId + "' stage-areas." + keyName +
+                        " spawn references world '" + spawnWorldName + "' which is not loaded. Skipping.");
+                continue;
+            }
+
+            Location spawnLoc = parseLocationWithOrientation(spawnWorld, spawnSec);
+
+            try {
+                EventModel.StageArea stageArea = new EventModel.StageArea(stageRegion, spawnLoc);
+                result.put(stageKey, stageArea);
+            } catch (IllegalArgumentException ex) {
+                plugin.getLogger().warning("⚠️  Event '" + eventId + "' stage-areas." + keyName +
+                        " has invalid StageArea (region/spawn mismatch). Skipping.");
+            }
+        }
+
+        return result;
     }
 
     // ---------------------------------------------------------------------
@@ -230,11 +370,12 @@ public final class EventDataFiles {
         LocalTime timeOfDay = LocalTime.MIDNIGHT;
         DayOfWeek dayOfWeek = null;
         int dayOfMonth = 0;
+        List<Duration> preStartOffsets = Collections.emptyList();
 
         if (scheduleSec == null) {
             plugin.getLogger().warning("⚠️  Event '" + eventId + "' missing 'schedule' section. " +
                     "Defaulting to DAILY at 00:00:00.");
-            return new EventModel.EventSchedule(repeatType, timeOfDay, dayOfWeek, dayOfMonth);
+            return new EventModel.EventSchedule(repeatType, timeOfDay, dayOfWeek, dayOfMonth, preStartOffsets);
         }
 
         // repeat
@@ -290,7 +431,58 @@ public final class EventDataFiles {
             dayOfMonth = dom;
         }
 
-        return new EventModel.EventSchedule(repeatType, timeOfDay, dayOfWeek, dayOfMonth);
+        // pre-start-reminders: list of "1H", "30M", "5M", "1M" etc.
+        preStartOffsets = parsePreStartOffsets(plugin, eventId, scheduleSec);
+
+        return new EventModel.EventSchedule(repeatType, timeOfDay, dayOfWeek, dayOfMonth, preStartOffsets);
+    }
+
+    private static List<Duration> parsePreStartOffsets(ConquestDragons plugin,
+                                                       String eventId,
+                                                       ConfigurationSection scheduleSec) {
+        List<String> rawList = scheduleSec.getStringList("pre-start-reminders");
+        if (rawList == null || rawList.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        List<Duration> out = new ArrayList<>();
+        for (String raw : rawList) {
+            if (raw == null || raw.isBlank()) continue;
+            Duration d = parseSimpleDuration(raw.trim());
+            if (d == null || d.isNegative() || d.isZero()) {
+                plugin.getLogger().warning("⚠️  Event '" + eventId + "' has invalid pre-start-reminder '" +
+                        raw + "'. Expected something like '1H', '30M', '15M', '5M', '1M'. Skipping.");
+                continue;
+            }
+            out.add(d);
+        }
+
+        // Sort largest ⇒ smallest so scheduler can consume in order if desired
+        out.sort(Comparator.comparingLong(Duration::getSeconds).reversed());
+        return Collections.unmodifiableList(out);
+    }
+
+    /**
+     * Parse very simple duration strings like "1H", "30M", "10S".
+     * Upper/lowercase allowed; no spaces.
+     */
+    private static Duration parseSimpleDuration(String raw) {
+        if (raw.isEmpty()) return null;
+        char unit = Character.toUpperCase(raw.charAt(raw.length() - 1));
+        String numPart = raw.substring(0, raw.length() - 1);
+        long value;
+        try {
+            value = Long.parseLong(numPart);
+        } catch (NumberFormatException ex) {
+            return null;
+        }
+        if (value <= 0L) return null;
+        return switch (unit) {
+            case 'H' -> Duration.ofHours(value);
+            case 'M' -> Duration.ofMinutes(value);
+            case 'S' -> Duration.ofSeconds(value);
+            default -> null;
+        };
     }
 
     // ---------------------------------------------------------------------
@@ -413,6 +605,132 @@ public final class EventDataFiles {
     }
 
     // ---------------------------------------------------------------------
+    // Helpers: rewards
+    // ---------------------------------------------------------------------
+
+    private static List<EventModel.RewardSpec> parseCompletionRewards(ConquestDragons plugin,
+                                                                      String eventId,
+                                                                      ConfigurationSection root) {
+        ConfigurationSection rewardsSec = root.getConfigurationSection("rewards");
+        if (rewardsSec == null) {
+            return Collections.emptyList();
+        }
+
+        @SuppressWarnings("unchecked")
+        List<Map<?, ?>> rawList = rewardsSec.getMapList("completion");
+        if (rawList == null || rawList.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        List<EventModel.RewardSpec> result = new ArrayList<>();
+        int index = 0;
+
+        for (Map<?, ?> map : rawList) {
+            index++;
+            if (map == null || map.isEmpty()) continue;
+
+            double chancePercent;
+            Object chanceObj = map.get("chance");
+            if (chanceObj instanceof Number num) {
+                chancePercent = num.doubleValue();
+            } else {
+                try {
+                    chancePercent = Double.parseDouble(String.valueOf(chanceObj));
+                } catch (Exception ex) {
+                    plugin.getLogger().warning("⚠️  Event '" + eventId + "' rewards.completion[" + index +
+                            "] has invalid 'chance'. Skipping this reward.");
+                    continue;
+                }
+            }
+
+            List<String> commands = toStringList(map.get("commands"));
+            if (commands.isEmpty()) {
+                plugin.getLogger().warning("⚠️  Event '" + eventId + "' rewards.completion[" + index +
+                        "] has no commands. Skipping this reward.");
+                continue;
+            }
+
+            try {
+                result.add(new EventModel.RewardSpec(chancePercent, commands));
+            } catch (IllegalArgumentException ex) {
+                plugin.getLogger().warning("⚠️  Event '" + eventId + "' rewards.completion[" + index +
+                        "] is invalid: " + ex.getMessage());
+            }
+        }
+
+        return Collections.unmodifiableList(result);
+    }
+
+    private static List<EventModel.RankingRewardSpec> parseRankingRewards(ConquestDragons plugin,
+                                                                          String eventId,
+                                                                          ConfigurationSection root) {
+        ConfigurationSection rewardsSec = root.getConfigurationSection("rewards");
+        if (rewardsSec == null) {
+            return Collections.emptyList();
+        }
+
+        @SuppressWarnings("unchecked")
+        List<Map<?, ?>> rawList = rewardsSec.getMapList("ranking");
+        if (rawList == null || rawList.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        List<EventModel.RankingRewardSpec> result = new ArrayList<>();
+        int index = 0;
+
+        for (Map<?, ?> map : rawList) {
+            index++;
+            if (map == null || map.isEmpty()) continue;
+
+            int rank;
+            Object rankObj = map.get("rank");
+            if (rankObj instanceof Number numRank) {
+                rank = numRank.intValue();
+            } else {
+                try {
+                    rank = Integer.parseInt(String.valueOf(rankObj));
+                } catch (Exception ex) {
+                    plugin.getLogger().warning("⚠️  Event '" + eventId + "' rewards.ranking[" + index +
+                            "] has invalid 'rank'. Skipping this reward.");
+                    continue;
+                }
+            }
+
+            double chancePercent;
+            Object chanceObj = map.get("chance");
+            if (chanceObj instanceof Number numChance) {
+                chancePercent = numChance.doubleValue();
+            } else {
+                try {
+                    chancePercent = Double.parseDouble(String.valueOf(chanceObj));
+                } catch (Exception ex) {
+                    plugin.getLogger().warning("⚠️  Event '" + eventId + "' rewards.ranking[" + index +
+                            "] has invalid 'chance'. Skipping this reward.");
+                    continue;
+                }
+            }
+
+            List<String> commands = toStringList(map.get("commands"));
+            if (commands.isEmpty()) {
+                plugin.getLogger().warning("⚠️  Event '" + eventId + "' rewards.ranking[" + index +
+                        "] has no commands. Skipping this reward.");
+                continue;
+            }
+
+            try {
+                result.add(new EventModel.RankingRewardSpec(rank, chancePercent, commands));
+            } catch (IllegalArgumentException ex) {
+                plugin.getLogger().warning("⚠️  Event '" + eventId + "' rewards.ranking[" + index +
+                        "] is invalid: " + ex.getMessage());
+            }
+        }
+
+        // Sort by rank ascending just for consistent ordering
+        result.sort(Comparator.comparingInt(EventModel.RankingRewardSpec::rank));
+        return Collections.unmodifiableList(result);
+    }
+
+    // ---------------------------------------------------------------------
     // Helpers: ensure default file on disk
     // ---------------------------------------------------------------------
 
@@ -424,7 +742,7 @@ public final class EventDataFiles {
 
         try {
             plugin.saveResource("EventData/defaultEvent.yml", false);
-            plugin.getLogger().info("✅  Placed default EventData/defaultEvent.yml onto disk.");
+            plugin.getLogger().info("✅  Placed EventData/defaultEvent.yml onto disk.");
         } catch (IllegalArgumentException ex) {
             plugin.getLogger().warning(
                     "⚠️  Missing bundled resource 'EventData/defaultEvent.yml' in the jar. " +
