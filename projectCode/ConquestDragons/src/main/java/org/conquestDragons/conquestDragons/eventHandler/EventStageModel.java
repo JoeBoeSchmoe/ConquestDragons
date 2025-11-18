@@ -8,93 +8,111 @@ import java.util.Objects;
 /**
  * Configuration model for a single event stage.
  *
- * For a given {@link EventStageKey}, this model defines:
- *  - startCommands: run once when the stage begins
- *  - timedCommands: run at offsets (in ticks/seconds) after stage start
- *  - endCommands:   run once when the stage ends
+ * Contains:
  *
- * This is a pure data model; the actual execution (console/player, placeholder
- * expansion, scheduling) is handled elsewhere.
+ *  COMMAND PIPELINE
+ *   • startCommands    – run once at stage start
+ *   • timedCommands    – run at offsets after start
+ *   • endCommands      – run once at stage end
+ *
+ *  MESSAGE PIPELINE
+ *   • repeatMessage    – OPTIONAL repeating message fired during the stage
+ *                        intervalTicks:
+ *                          - 0  => disabled
+ *                          - >0 => repeat every N ticks
+ *
+ * No message-id declared in YAML anymore.
+ * It is auto-generated from the stage key:
+ *
+ *     messages.user.stages.<STAGE_KEY>.repeat
  */
 public final class EventStageModel {
 
     private final EventStageKey stageKey;
 
-    /** Commands executed once when this stage starts. */
+    // ---------------------------------------------------------
+    // Commands
+    // ---------------------------------------------------------
     private final List<String> startCommands;
-
-    /** Commands scheduled during this stage at specific offsets. */
     private final List<TimedCommandSpec> timedCommands;
-
-    /** Commands executed once when this stage ends. */
     private final List<String> endCommands;
 
-    // ---------------------------------------------------------------------
-    // Construction
-    // ---------------------------------------------------------------------
+    // ---------------------------------------------------------
+    // ONE repeat message spec per stage (nullable)
+    // ---------------------------------------------------------
+    private final RepeatMessageSpec repeatMessage;
 
+    // ---------------------------------------------------------
+    // Construction
+    // ---------------------------------------------------------
+
+    /** Compatibility constructor (commands only). */
     public EventStageModel(EventStageKey stageKey,
                            List<String> startCommands,
                            List<TimedCommandSpec> timedCommands,
                            List<String> endCommands) {
-        this.stageKey = Objects.requireNonNull(stageKey, "stageKey");
-
-        this.startCommands = unmodifiableCopy(startCommands);
-        this.timedCommands = unmodifiableCopy(timedCommands);
-        this.endCommands = unmodifiableCopy(endCommands);
+        this(stageKey, startCommands, timedCommands, endCommands, null);
     }
 
-    private static <T> List<T> unmodifiableCopy(List<T> src) {
-        if (src == null || src.isEmpty()) {
+    /** Full constructor including repeatMessage. */
+    public EventStageModel(EventStageKey stageKey,
+                           List<String> startCommands,
+                           List<TimedCommandSpec> timedCommands,
+                           List<String> endCommands,
+                           RepeatMessageSpec repeatMessage) {
+
+        this.stageKey = Objects.requireNonNull(stageKey, "stageKey");
+
+        this.startCommands  = copy(startCommands);
+        this.timedCommands  = copy(timedCommands);
+        this.endCommands    = copy(endCommands);
+        this.repeatMessage  = repeatMessage; // nullable
+    }
+
+    private static <T> List<T> copy(List<T> src) {
+        if (src == null || src.isEmpty())
             return Collections.emptyList();
-        }
         return Collections.unmodifiableList(new ArrayList<>(src));
     }
 
-    // ---------------------------------------------------------------------
+    // ---------------------------------------------------------
     // Getters
-    // ---------------------------------------------------------------------
+    // ---------------------------------------------------------
 
     public EventStageKey stageKey() {
         return stageKey;
     }
 
-    /** Commands to run when stage starts. */
     public List<String> startCommands() {
         return startCommands;
     }
 
-    /** Timed commands to run at offsets after stage start. */
     public List<TimedCommandSpec> timedCommands() {
         return timedCommands;
     }
 
-    /** Commands to run when stage ends. */
     public List<String> endCommands() {
         return endCommands;
     }
 
-    // ---------------------------------------------------------------------
-    // Nested timed-command spec
-    // ---------------------------------------------------------------------
+    public RepeatMessageSpec repeatMessage() {
+        return repeatMessage;
+    }
 
-    /**
-     * Immutable spec for one "batch" of timed commands.
-     *
-     * delayTicks: offset from stage start in ticks (20 = 1 second).
-     * commands  : list of raw command strings to execute at that offset.
-     */
+    // ---------------------------------------------------------
+    // Timed command spec (one–shot batches)
+    // ---------------------------------------------------------
     public static final class TimedCommandSpec {
 
         private final long delayTicks;
         private final List<String> commands;
 
         public TimedCommandSpec(long delayTicks, List<String> commands) {
-            if (delayTicks < 0) {
+            if (delayTicks < 0)
                 throw new IllegalArgumentException("delayTicks cannot be negative");
-            }
+
             this.delayTicks = delayTicks;
-            this.commands = unmodifiableCopy(commands);
+            this.commands   = copy(commands);
         }
 
         public long delayTicks() {
@@ -103,6 +121,47 @@ public final class EventStageModel {
 
         public List<String> commands() {
             return commands;
+        }
+    }
+
+    // ---------------------------------------------------------
+    // Repeat message (OPTIONAL, loops by interval)
+    // ---------------------------------------------------------
+    public static final class RepeatMessageSpec {
+
+        /**
+         * Interval between message fires, in ticks.
+         *
+         *  0  => disabled
+         *  >0 => repeat every N ticks
+         */
+        private final long intervalTicks;
+
+        public RepeatMessageSpec(long intervalTicks) {
+            if (intervalTicks < 0)
+                throw new IllegalArgumentException("intervalTicks cannot be negative");
+
+            this.intervalTicks = intervalTicks;
+        }
+
+        public long intervalTicks() {
+            return intervalTicks;
+        }
+
+        /**
+         * AUTO DERIVED messageId for this stage:
+         *
+         *   messages.user.stages.<STAGE_KEY>.repeat
+         */
+        public String deriveMessageId(EventStageKey key) {
+            return "user.stages." + key.name().toLowerCase().replace("_", "-") + ".repeat";
+        }
+
+        /**
+         * Convenience: returns true if this spec is effectively disabled.
+         */
+        public boolean isDisabled() {
+            return intervalTicks == 0L;
         }
     }
 }

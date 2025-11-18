@@ -345,9 +345,14 @@ event:
         - delay-ticks: 200
           commands:
             - "say [DRAGON EVENT] The air crackles with anticipation..."
+
         - delay-ticks: 400
           commands:
             - "say [DRAGON EVENT] The dragons stir in the distance..."
+
+      # NEW — REPEATING stage message (0 delay-ticks = disabled)
+      repeat-message:
+        delay-ticks: 300
 
       end-commands:
         - "say [DRAGON EVENT] The ritual begins now!"
@@ -373,6 +378,9 @@ event:
           commands:
             - "say [DRAGON EVENT] The dragons hunger for your souls..."
 
+      repeat-message:
+        delay-ticks: 500
+
       end-commands:
         - "say [DRAGON EVENT] The initial assault has ended..."
         - "tellraw @a {\"text\":\"Some of you have been swallowed whole...\",\"color\":\"dark_red\"}"
@@ -397,6 +405,9 @@ event:
           commands:
             - "say [DRAGON EVENT] The belly convulses violently!"
 
+      repeat-message:
+        delay-ticks: 300
+
       end-commands:
         - "say [DRAGON EVENT] Those within the belly have been released..."
         - "title @a[tag=in_belly] clear"
@@ -417,6 +428,9 @@ event:
           commands:
             - "say [DRAGON EVENT] The dragons are weakening..."
 
+      repeat-message:
+        delay-ticks: 260
+
       end-commands:
         - "say [DRAGON EVENT] All have escaped the belly. The final challenge awaits..."
 
@@ -435,6 +449,9 @@ event:
         - delay-ticks: 300
           commands:
             - "say [DRAGON EVENT] The Apex Devourer roars in fury!"
+
+      repeat-message:
+        delay-ticks: 450
 
       end-commands:
         - "say [DRAGON EVENT] The Devourer has been slain! The realm is safe... for now."

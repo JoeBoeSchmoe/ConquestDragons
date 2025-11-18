@@ -16,11 +16,17 @@ import java.time.ZoneId;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.logging.Level;
 
 /**
  * EventSequenceManager
  *
- * Central runtime coordinator for scheduled dragon events.
+ * Central runtime coordinator for scheduled dragon events:
+ *  - Computes each EventModel's next run from its schedule.
+ *  - Manages the join window (open/close + reminders).
+ *  - Starts/ends logical stages (LOBBY, INITIAL, etc.).
+ *  - Executes stage start/timed/end commands.
+ *  - Handles per-stage repeat messages (looping while stage is active).
  */
 public final class EventSequenceManager {
 
@@ -158,7 +164,7 @@ public final class EventSequenceManager {
                     id -> ScheduledRun.forEvent(event, zoneId, now)
             );
 
-            // If the current run is fully completed, roll to the next one.
+            // If the current run is fully completed (based on maxDuration), roll to the next one.
             if (run.isCompleted(now)) {
                 run = ScheduledRun.forEvent(event, zoneId, now);
                 runsByEventId.put(event.id(), run);
@@ -169,7 +175,7 @@ public final class EventSequenceManager {
     }
 
     private void processRun(EventModel event, ScheduledRun run, Instant now) {
-        // 1) Pre-start heads-up reminders
+        // 1) Pre-start heads-up reminders (global countdown)
         run.fireDuePreStartReminders(event, now);
 
         // 2) Join window opened at startInstant
@@ -195,20 +201,15 @@ public final class EventSequenceManager {
             run.joinWindowClosed = true;
             onJoinWindowEnded(event, run);
         }
+
+        // 5) Per-stage timed commands + repeat messages
+        tickStages(event, run, now);
     }
 
     // ---------------------------------------------------
     // Public join-window query API
     // ---------------------------------------------------
 
-    /**
-     * High-level join-window state for a given event.
-     *
-     * UPCOMING  -> join window not yet open for the current scheduled run.
-     * OPEN      -> join window currently open.
-     * CLOSED    -> join window for the current scheduled run has ended.
-     * UNSCHEDULED -> no runtime schedule info for this event (yet).
-     */
     public enum JoinWindowState {
         UPCOMING,
         OPEN,
@@ -216,12 +217,6 @@ public final class EventSequenceManager {
         UNSCHEDULED
     }
 
-    /**
-     * Query the current join-window state for the given event.
-     *
-     * This is used by /dragons join to decide whether players
-     * should be allowed to join now, or receive "not started"/"window closed".
-     */
     public JoinWindowState queryJoinWindowState(EventModel event) {
         if (event == null || !event.enabled()) {
             return JoinWindowState.UNSCHEDULED;
@@ -230,9 +225,6 @@ public final class EventSequenceManager {
         String id = event.id();
         Instant now = Instant.now();
 
-        // Try to reuse existing run; if none, lazily build one so that
-        // commands can still reason about the next scheduled time even
-        // before the first tick executes.
         ScheduledRun run = runsByEventId.get(id);
         if (run == null) {
             run = ScheduledRun.forEvent(event, zoneId, now);
@@ -249,14 +241,9 @@ public final class EventSequenceManager {
     }
 
     // ---------------------------------------------------
-    // Hook methods (wired into your message system)
+    // Join-window hooks
     // ---------------------------------------------------
 
-    /**
-     * Called each time a pre-start reminder offset is reached.
-     *
-     * Uses messages.user.countdown with {time} placeholder.
-     */
     private void onPreStartReminder(EventModel event,
                                     Duration offsetBeforeStart,
                                     ScheduledRun run) {
@@ -264,40 +251,31 @@ public final class EventSequenceManager {
 
         Map<String, String> placeholders = new HashMap<>();
         placeholders.put("time", timeText);
-        // placeholders.put("event", event.displayName());
 
         broadcastUserMessage(UserMessageModels.EVENT_COUNTDOWN, placeholders);
     }
 
     /**
-     * Called when the join window opens (at startInstant).
-     *
-     * Uses messages.user.EventStart and now sends {time}
-     * = total join window length (e.g. "5m", "10m").
+     * Join window opens:
+     * - event.joinWindowOpen = true
+     * - currentStageKey = LOBBY
+     * - LOBBY stage started
      */
     private void onJoinWindowOpened(EventModel event, ScheduledRun run) {
-        // Mark runtime join-window state on the event
         event.setJoinWindowOpen(true);
+        event.setRunning(false); // not "combat live" yet
+        event.setCurrentStageKey(EventStageKey.LOBBY);
 
         Map<String, String> placeholders = new HashMap<>();
-
-        // How long the join window stays open
         String windowLengthText = humanReadable(run.joinWindowLength);
         placeholders.put("time", windowLengthText);
-        // placeholders.put("event", event.displayName());
 
         broadcastUserMessage(UserMessageModels.EVENT_START, placeholders);
 
-        // Later: runtime controller hook
-        // DragonEventRuntimeManager.getInstance().onJoinWindowOpened(event, run.startInstant, run.joinWindowEndInstant);
+        // Start LOBBY stage (pre-combat waiting room)
+        startStage(event, run, EventStageKey.LOBBY, run.startInstant);
     }
 
-    /**
-     * Called periodically during the join window, at joinReminderInterval.
-     *
-     * Uses messages.user.EventStartReminder with {time}
-     * = remaining time in the join window.
-     */
     private void onJoinWindowReminder(EventModel event, ScheduledRun run) {
         Duration remaining = Duration.between(
                 Instant.now(),
@@ -307,30 +285,34 @@ public final class EventSequenceManager {
             remaining = Duration.ZERO;
         }
 
+        // 🔧 Clamp small positive durations to 1 minute so we don't show "57s"
+        if (remaining.compareTo(Duration.ZERO) > 0
+                && remaining.compareTo(Duration.ofMinutes(1)) < 0) {
+            remaining = Duration.ofMinutes(1);
+        }
+
         Map<String, String> placeholders = new HashMap<>();
         placeholders.put("time", humanReadable(remaining));
-        // placeholders.put("event", event.displayName());
 
         broadcastUserMessage(UserMessageModels.EVENT_START_REMINDER, placeholders);
     }
 
     /**
-     * Called once when the join window ends.
-     *
-     * Uses messages.user.EventStarted to announce that the event
-     * has begun (gates closed, combat starting, etc.).
-     *
-     * Here we also:
-     *  - flip joinWindowOpen=false and running=true
-     *  - set currentStageKey=INITIAL
-     *  - teleport all participants to the INITIAL stage's spawn
-     *    (falling back to dragonSpawn if no stage area is defined).
+     * Join window ends:
+     * - joinWindowOpen = false
+     * - running = true
+     * - currentStageKey = INITIAL
+     * - LOBBY end-commands
+     * - INITIAL start-commands + timers
+     * - participants teleported into INITIAL arena
      */
     private void onJoinWindowEnded(EventModel event, ScheduledRun run) {
-        // Close join window + mark event as running in INITIAL stage
         event.setJoinWindowOpen(false);
         event.setRunning(true);
         event.setCurrentStageKey(EventStageKey.INITIAL);
+
+        // End the LOBBY stage (end-commands)
+        endStage(event, run, EventStageKey.LOBBY);
 
         // Teleport all participants into the INITIAL stage arena
         Location initialSpawn = resolveInitialStageSpawn(event);
@@ -341,15 +323,114 @@ public final class EventSequenceManager {
             }
         }
 
+        // Start INITIAL stage right as the join window closes
+        startStage(event, run, EventStageKey.INITIAL, run.joinWindowEndInstant);
+
         Map<String, String> placeholders = new HashMap<>();
-        // Even if {event} isn't used yet in YAML, this is safe and future-proof.
         placeholders.put("event", event.displayName());
 
         broadcastUserMessage(UserMessageModels.EVENT_STARTED, placeholders);
+    }
 
-        // Later: actually schedule per-stage timed events / commands here
-        // (e.g. INITIAL -> IN_BELLY -> POST_BELLY -> FINAL)
-        // DragonEventRuntimeManager.getInstance().onJoinWindowClosedAndStartEvent(event, run.startInstant);
+    // ---------------------------------------------------
+    // Stage runtime helpers
+    // ---------------------------------------------------
+
+    /**
+     * Start a logical stage for this run:
+     * - build StageRuntime (timed commands + repeat message state)
+     * - immediately run its start-commands
+     */
+    private void startStage(EventModel event,
+                            ScheduledRun run,
+                            EventStageKey key,
+                            Instant startInstant) {
+
+        ScheduledRun.StageRuntime runtime = run.getOrCreateStageRuntime(event, key, startInstant);
+        if (runtime == null) {
+            plugin.getLogger().warning("[ConquestDragons] No EventStageModel configured for stage "
+                    + key + " in event " + event.id());
+            return;
+        }
+
+        if (runtime.started) {
+            return; // already started
+        }
+
+        runtime.started = true;
+
+        plugin.getLogger().info("[ConquestDragons] Starting stage " + key
+                + " for event " + event.id()
+                + " (timedCommands=" + runtime.timedCommands.size()
+                + ", hasRepeatMessage=" + (runtime.repeatMessage != null) + ")");
+
+        executeCommands(runtime.model.startCommands());
+    }
+
+    /**
+     * End a logical stage for this run:
+     * - mark ended
+     * - run its end-commands
+     */
+    private void endStage(EventModel event,
+                          ScheduledRun run,
+                          EventStageKey key) {
+
+        ScheduledRun.StageRuntime runtime = run.getStageRuntime(key);
+        if (runtime == null || runtime.ended) {
+            return;
+        }
+
+        runtime.ended = true;
+
+        plugin.getLogger().info("[ConquestDragons] Ending stage " + key
+                + " for event " + event.id());
+
+        executeCommands(runtime.model.endCommands());
+    }
+
+    /**
+     * Per-tick stage pipeline:
+     * - fire due timed-commands (one-shot)
+     * - fire repeat stage messages on their interval (participants only)
+     */
+    private void tickStages(EventModel event, ScheduledRun run, Instant now) {
+        for (ScheduledRun.StageRuntime runtime : run.allStageRuntimes()) {
+            if (!runtime.started || runtime.ended) {
+                continue;
+            }
+
+            // 1) Timed commands (one-shot each)
+            for (ScheduledRun.PendingTimedCommand batch : runtime.timedCommands) {
+                if (!batch.executed && !now.isBefore(batch.fireInstant)) {
+                    batch.executed = true;
+
+                    plugin.getLogger().info("[ConquestDragons] Executing timed-commands for stage "
+                            + runtime.stageKey + " (event=" + event.id()
+                            + ", commands=" + batch.commands.size() + ")");
+
+                    executeCommands(batch.commands);
+                }
+            }
+
+            // 2) Repeat stage message (looping while stage active)
+            ScheduledRun.RepeatMessageState rm = runtime.repeatMessage;
+            if (rm != null && rm.nextFireInstant != null && !now.isBefore(rm.nextFireInstant)) {
+                plugin.getLogger().info("[ConquestDragons] Firing repeat stage message for stage "
+                        + runtime.stageKey + " (event=" + event.id() + ")");
+
+                sendStageTimedMessage(event, runtime.stageKey); // still uses your existing message models
+
+                // Schedule next fire based on intervalTicks
+                long intervalTicks = rm.intervalTicks;
+                if (intervalTicks > 0L) {
+                    rm.nextFireInstant = rm.nextFireInstant.plusMillis(intervalTicks * 50L);
+                } else {
+                    // Safety: if somehow intervalTicks <= 0, disable further fires
+                    rm.nextFireInstant = null;
+                }
+            }
+        }
     }
 
     // ---------------------------------------------------
@@ -358,8 +439,8 @@ public final class EventSequenceManager {
 
     /**
      * Decide where to send players when the INITIAL stage begins:
-     *  - Prefer the INITIAL StageArea's spawn, if configured
-     *  - Otherwise fall back to the global dragonSpawn.
+     * - Prefer the INITIAL StageArea's spawn, if configured
+     * - Otherwise fall back to the global dragonSpawn.
      */
     private static Location resolveInitialStageSpawn(EventModel event) {
         EventModel.StageArea initialArea = event.stageAreaOrNull(EventStageKey.INITIAL);
@@ -376,28 +457,104 @@ public final class EventSequenceManager {
 
         long seconds = d.getSeconds();
 
-        // Hours, rounded to nearest hour
         if (seconds >= 3600) {
             long hours = Math.round(seconds / 3600.0);
             return hours + "H";
         }
-
-        // Minutes, rounded to nearest minute
         if (seconds >= 60) {
             long minutes = Math.round(seconds / 60.0);
             return minutes + "M";
         }
-
-        // Under 60 seconds → just show seconds
         return seconds + "s";
     }
 
     /**
+     * Execute a batch of console commands safely.
+     */
+    private void executeCommands(List<String> commands) {
+        if (commands == null || commands.isEmpty()) return;
+
+        for (String raw : commands) {
+            if (raw == null) continue;
+            String cmd = raw.trim();
+            if (cmd.isEmpty()) continue;
+
+            try {
+                Bukkit.dispatchCommand(Bukkit.getConsoleSender(), cmd);
+            } catch (Exception ex) {
+                plugin.getLogger().log(
+                        Level.WARNING,
+                        "Failed to execute event command: \"" + cmd + "\"",
+                        ex
+                );
+            }
+        }
+    }
+
+    /**
      * Broadcast a user message model (with placeholders) to all online players.
+     * (Used only for global notices like countdown / join window).
      */
     private void broadcastUserMessage(UserMessageModels model, Map<String, String> placeholders) {
         for (Player player : Bukkit.getOnlinePlayers()) {
             MessageResponseManager.send(player, model, placeholders);
+        }
+    }
+
+    /**
+     * Send the stage "repeat" message (still using your existing *TIMED* models)
+     * to event participants only.
+     *
+     * Your UserMessageModels currently look like:
+     *   LOBBY_STAGE_TIMED, INITIAL_STAGE_TIMED, ...
+     * pointing at YAML sections:
+     *   messages.user.lobby-stage.timed
+     *   messages.user.initial-stage.timed
+     *   ...
+     */
+    private void sendStageTimedMessage(EventModel event, EventStageKey stageKey) {
+        UserMessageModels model = resolveStageTimedModel(stageKey);
+        if (model == null) {
+            plugin.getLogger().warning("[ConquestDragons] No UserMessageModels mapping for stage timed message: "
+                    + stageKey);
+            return;
+        }
+
+        Collection<UUID> participants = event.participantsSnapshot();
+        if (participants == null || participants.isEmpty()) {
+            return;
+        }
+
+        Map<String, String> placeholders = new HashMap<>();
+        placeholders.put("event", event.displayName());
+        placeholders.put("stage", stageKey.name());
+
+        for (UUID uuid : participants) {
+            Player p = Bukkit.getPlayer(uuid);
+            if (p != null && p.isOnline()) {
+                MessageResponseManager.send(p, model, placeholders);
+            }
+        }
+    }
+
+    /**
+     * Map logical stage → timed message model.
+     * Adjust these names to your actual enum values.
+     */
+    private UserMessageModels resolveStageTimedModel(EventStageKey stageKey) {
+        switch (stageKey) {
+            case LOBBY:
+                return UserMessageModels.LOBBY_STAGE_TIMED;
+            case INITIAL:
+                return UserMessageModels.INITIAL_STAGE_TIMED;
+            case IN_BELLY:
+                return UserMessageModels.IN_BELLY_STAGE_TIMED;
+            case POST_BELLY:
+                return UserMessageModels.POST_BELLY_STAGE_TIMED;
+            case FINAL:
+                return UserMessageModels.FINAL_STAGE_TIMED;
+            default:
+                return null;
         }
     }
 
@@ -409,6 +566,8 @@ public final class EventSequenceManager {
 
         final Instant startInstant;
         final Instant joinWindowEndInstant;
+        final Instant runEndInstant;        // when the whole event run is considered finished
+
         final Duration joinWindowLength;
         final Duration joinReminderInterval;
 
@@ -418,32 +577,35 @@ public final class EventSequenceManager {
         boolean joinWindowClosed;
         Instant lastJoinReminderInstant;
 
+        // Per-stage runtime (commands + repeat message)
+        private final Map<EventStageKey, StageRuntime> stageRuntimes = new EnumMap<>(EventStageKey.class);
+
         private ScheduledRun(Instant startInstant,
                              Instant joinWindowEndInstant,
+                             Instant runEndInstant,
                              Duration joinWindowLength,
                              Duration joinReminderIntervalRaw,
                              List<Reminder> preStartReminders) {
             this.startInstant = startInstant;
             this.joinWindowEndInstant = joinWindowEndInstant;
+            this.runEndInstant = runEndInstant;
             this.joinWindowLength = joinWindowLength;
-            this.joinReminderInterval = joinWindowIntervalSafe(joinReminderIntervalRaw);
+            this.joinReminderInterval = safeInterval(joinReminderIntervalRaw);
             this.preStartReminders = preStartReminders;
         }
 
-        private static Duration joinWindowIntervalSafe(Duration interval) {
+        private static Duration safeInterval(Duration interval) {
             if (interval == null || interval.isNegative() || interval.isZero()) {
                 return Duration.ZERO;
             }
             return interval;
         }
 
-        /**
-         * Build a new ScheduledRun from an EventModel and current time.
-         */
         static ScheduledRun forEvent(EventModel event, ZoneId zoneId, Instant now) {
             EventModel.EventSchedule schedule = event.schedule();
             Instant start = schedule.nextRun(zoneId, now);
 
+            // Join window
             Duration joinWindow = event.joinWindowLength();
             if (joinWindow.isNegative()) {
                 joinWindow = Duration.ZERO;
@@ -453,7 +615,15 @@ public final class EventSequenceManager {
             Duration joinReminderInterval = event.joinReminderInterval();
             List<Reminder> reminders = buildPreStartReminders(schedule.preStartReminderOffsets(), start);
 
-            return new ScheduledRun(start, joinEnd, joinWindow, joinReminderInterval, reminders);
+            // Compute when this event run should fully end, based on maxDuration
+            Duration maxDuration = event.maxDuration();
+            if (maxDuration == null || maxDuration.isZero() || maxDuration.isNegative()) {
+                // Safety: ensure we don't instantly mark it complete
+                maxDuration = Duration.ofMinutes(1);
+            }
+            Instant runEnd = start.plus(maxDuration);
+
+            return new ScheduledRun(start, joinEnd, runEnd, joinWindow, joinReminderInterval, reminders);
         }
 
         private static List<Reminder> buildPreStartReminders(List<Duration> offsets, Instant startInstant) {
@@ -471,43 +641,69 @@ public final class EventSequenceManager {
         }
 
         boolean isCompleted(Instant now) {
-            // Consider this run fully done once the join window has closed AND
-            // we've passed joinWindowEndInstant by at least 1 second.
-            return now.isAfter(joinWindowEndInstant.plusSeconds(1));
+            // Run is considered complete once we've passed the configured maxDuration
+            return now.isAfter(runEndInstant);
         }
 
         void fireDuePreStartReminders(EventModel event, Instant now) {
             if (preStartReminders.isEmpty()) return;
 
-            // Find the single most recent reminder that is due (fireInstant <= now)
             Reminder latestDue = null;
 
             for (Reminder r : preStartReminders) {
                 if (r.fired) continue;
                 if (!now.isBefore(r.fireInstant)) { // fireInstant <= now
-                    latestDue = r; // list is sorted, so this ends up as the last due reminder
+                    latestDue = r;
                 }
             }
 
             if (latestDue == null) {
-                // Nothing new is due this tick.
                 return;
             }
 
-            // Mark all earlier due reminders as "fired" silently so they never trigger.
             for (Reminder r : preStartReminders) {
                 if (!r.fired && r.fireInstant.isBefore(latestDue.fireInstant)) {
                     r.fired = true;
                 }
             }
 
-            // Fire only the most relevant (latest) one.
             latestDue.fired = true;
             EventSequenceManager manager = EventSequenceManager.getInstance();
             if (manager != null) {
                 manager.onPreStartReminder(event, latestDue.offsetBeforeStart, this);
             }
         }
+
+        // ----- Stage runtime accessors -----------------------------------
+
+        StageRuntime getOrCreateStageRuntime(EventModel event,
+                                             EventStageKey key,
+                                             Instant startInstant) {
+
+            StageRuntime existing = stageRuntimes.get(key);
+            if (existing != null) {
+                return existing;
+            }
+
+            EventStageModel model = event.findStageOrNull(key);
+            if (model == null) {
+                return null;
+            }
+
+            StageRuntime created = new StageRuntime(key, model, startInstant);
+            stageRuntimes.put(key, created);
+            return created;
+        }
+
+        StageRuntime getStageRuntime(EventStageKey key) {
+            return stageRuntimes.get(key);
+        }
+
+        Collection<StageRuntime> allStageRuntimes() {
+            return stageRuntimes.values();
+        }
+
+        // ----- Inner value objects --------------------------------------
 
         private static final class Reminder {
             final Instant fireInstant;
@@ -518,6 +714,117 @@ public final class EventSequenceManager {
                 this.fireInstant = fireInstant;
                 this.offsetBeforeStart = offsetBeforeStart;
             }
+        }
+
+        /**
+         * Per-stage runtime:
+         * - startInstant      : when this stage began
+         * - timedCommands     : batches scheduled from stage start (one-shot)
+         * - repeatMessage     : optional repeating message state
+         * - started / ended   : lifecycle flags
+         */
+        static final class StageRuntime {
+            final EventStageKey stageKey;
+            final EventStageModel model;
+            final Instant startInstant;
+            final List<PendingTimedCommand> timedCommands;
+            final RepeatMessageState repeatMessage;
+
+            boolean started;
+            boolean ended;
+
+            StageRuntime(EventStageKey stageKey,
+                         EventStageModel model,
+                         Instant startInstant) {
+
+                this.stageKey = Objects.requireNonNull(stageKey, "stageKey");
+                this.model = Objects.requireNonNull(model, "model");
+                this.startInstant = Objects.requireNonNull(startInstant, "startInstant");
+
+                this.timedCommands = buildTimedCommandBatches(model.timedCommands(), startInstant);
+                this.repeatMessage = buildRepeatMessageState(model.repeatMessage(), startInstant);
+            }
+        }
+
+        /**
+         * One batch of commands scheduled at a specific instant.
+         */
+        static final class PendingTimedCommand {
+            final Instant fireInstant;
+            final List<String> commands;
+            boolean executed;
+
+            PendingTimedCommand(Instant fireInstant, List<String> commands) {
+                this.fireInstant = fireInstant;
+                this.commands = commands;
+            }
+        }
+
+        /**
+         * Repeat message state:
+         * - intervalTicks > 0 => loop every N ticks
+         * - nextFireInstant   => when to fire next (null == disabled)
+         */
+        static final class RepeatMessageState {
+            final long intervalTicks;
+            Instant nextFireInstant;
+
+            RepeatMessageState(long intervalTicks, Instant nextFireInstant) {
+                this.intervalTicks = intervalTicks;
+                this.nextFireInstant = nextFireInstant;
+            }
+        }
+
+        // ----- Builders for stage timers --------------------------------
+
+        private static List<PendingTimedCommand> buildTimedCommandBatches(
+                List<EventStageModel.TimedCommandSpec> specs,
+                Instant startInstant
+        ) {
+            if (specs == null || specs.isEmpty()) {
+                return Collections.emptyList();
+            }
+
+            List<PendingTimedCommand> list = new ArrayList<>(specs.size());
+            for (EventStageModel.TimedCommandSpec spec : specs) {
+                if (spec == null) continue;
+                List<String> cmds = spec.commands();
+                if (cmds == null || cmds.isEmpty()) continue;
+
+                long ticks = spec.delayTicks();
+                if (ticks < 0) continue;
+
+                Instant at = startInstant.plusMillis(ticks * 50L); // 20 ticks = 1s
+                list.add(new PendingTimedCommand(at, cmds));
+            }
+
+            list.sort(Comparator.comparing(pc -> pc.fireInstant));
+            return list;
+        }
+
+        /**
+         * Build repeat-message state from the RepeatMessageSpec.
+         *
+         * intervalTicks:
+         *   - 0  => disabled (returns null)
+         *   - >0 => first fire at startInstant + interval
+         */
+        private static RepeatMessageState buildRepeatMessageState(
+                EventStageModel.RepeatMessageSpec spec,
+                Instant startInstant
+        ) {
+            if (spec == null) {
+                return null;
+            }
+
+            long intervalTicks = spec.intervalTicks();
+            if (intervalTicks <= 0L) {
+                // 0 = disabled by design
+                return null;
+            }
+
+            Instant firstFire = startInstant.plusMillis(intervalTicks * 50L);
+            return new RepeatMessageState(intervalTicks, firstFire);
         }
     }
 }

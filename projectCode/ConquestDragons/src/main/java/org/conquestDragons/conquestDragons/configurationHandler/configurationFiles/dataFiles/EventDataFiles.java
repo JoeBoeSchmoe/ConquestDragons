@@ -550,16 +550,21 @@ public final class EventDataFiles {
             }
 
             List<String> startCommands = toStringList(stageMap.get("start-commands"));
-            List<String> endCommands = toStringList(stageMap.get("end-commands"));
+            List<String> endCommands   = toStringList(stageMap.get("end-commands"));
 
             List<EventStageModel.TimedCommandSpec> timedCommands =
                     parseTimedCommands(plugin, eventId, stageKey, stageMap.get("timed-commands"));
+
+            // NEW: single repeat-message spec (0 or invalid = disabled → null)
+            EventStageModel.RepeatMessageSpec repeatMessage =
+                    parseRepeatMessage(plugin, eventId, stageKey, stageMap.get("repeat-message"));
 
             EventStageModel stageModel = new EventStageModel(
                     stageKey,
                     startCommands,
                     timedCommands,
-                    endCommands
+                    endCommands,
+                    repeatMessage
             );
             result.add(stageModel);
         }
@@ -613,6 +618,52 @@ public final class EventDataFiles {
         }
 
         return result;
+    }
+
+    /**
+     * Parse the per-stage repeat-message block:
+     *
+     *   repeat-message:
+     *     delay-ticks: 300   # 0 or missing = disabled
+     */
+    private static EventStageModel.RepeatMessageSpec parseRepeatMessage(ConquestDragons plugin,
+                                                                        String eventId,
+                                                                        EventStageKey stageKey,
+                                                                        Object rawRepeatObj) {
+        if (!(rawRepeatObj instanceof Map<?, ?> raw)) {
+            return null;
+        }
+
+        Object delayObj = raw.get("delay-ticks");
+        if (delayObj == null) {
+            return null;
+        }
+
+        long delayTicks;
+        if (delayObj instanceof Number num) {
+            delayTicks = num.longValue();
+        } else {
+            try {
+                delayTicks = Long.parseLong(String.valueOf(delayObj));
+            } catch (Exception ex) {
+                plugin.getLogger().warning("⚠️  Event '" + eventId + "' stage '" + stageKey +
+                        "' repeat-message has invalid 'delay-ticks'. Skipping repeat-message.");
+                return null;
+            }
+        }
+
+        // 0 or negative = disabled, as per design
+        if (delayTicks <= 0L) {
+            return null;
+        }
+
+        try {
+            return new EventStageModel.RepeatMessageSpec(delayTicks);
+        } catch (IllegalArgumentException ex) {
+            plugin.getLogger().warning("⚠️  Event '" + eventId + "' stage '" + stageKey +
+                    "' repeat-message has invalid delay-ticks=" + delayTicks + ". Skipping repeat-message.");
+            return null;
+        }
     }
 
     @SuppressWarnings("unchecked")
