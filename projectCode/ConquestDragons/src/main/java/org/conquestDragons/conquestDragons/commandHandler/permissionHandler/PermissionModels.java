@@ -4,10 +4,7 @@ package org.conquestDragons.conquestDragons.commandHandler.permissionHandler;
  * 🔐 PermissionModels
  * Enum of all permission nodes used in ConquestDragons.
  *
- * This centralizes all permission identifiers for easier reference,
- * maintainability, and consistency across the project.
- *
- * Based on ConquestDragons’s PermissionModels design.
+ * Centralized permission definitions for consistent use across the project.
  */
 public enum PermissionModels {
 
@@ -16,6 +13,13 @@ public enum PermissionModels {
     // ─────────────────────────────────────────────
     USER_BASECOMMAND("conquestdragons.user.basecommand"),
     USER_HELP("conquestdragons.user.help"),
+
+    USER_JOIN("conquestdragons.user.join"),
+    USER_LEAVE("conquestdragons.user.leave"),
+
+    USER_SPECTATE("conquestdragons.user.spectate"),
+    USER_SPECTATE_LEAVE("conquestdragons.user.spectate.leave"),
+
     USER_ALL("conquestdragons.user.*"),
 
     // ─────────────────────────────────────────────
@@ -32,19 +36,11 @@ public enum PermissionModels {
         this.node = node;
     }
 
-    /**
-     * Returns the full permission string.
-     *
-     * @return The permission node (e.g. "conquestdragons.user.help")
-     */
+    /** Returns the full permission node string. */
     public String getNode() {
         return node;
     }
 
-    /**
-     * Returns the permission node as a string for direct use
-     * in checks or logging.
-     */
     @Override
     public String toString() {
         return node;

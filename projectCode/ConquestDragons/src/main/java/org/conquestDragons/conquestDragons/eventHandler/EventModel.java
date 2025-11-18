@@ -20,6 +20,8 @@ import java.util.concurrent.ConcurrentMap;
  *  - id                       : stable config id for this event
  *  - displayName              : MiniMessage display name for UI/logs
  *  - enabled                  : whether this event is active/usable at all
+ *  - keepInventory            : if true, players keep their items on death during
+ *                               this event (no drops); if false, normal drops.
  *
  *  - dragonIds                : list of NON-BOSS dragon config IDs in the INITIAL / POST_BELLY phases
  *                               (players fight these in the main arena)
@@ -69,6 +71,9 @@ import java.util.concurrent.ConcurrentMap;
  *  - participants             : set of players (UUIDs) currently in this event
  *  - spectators               : set of players (UUIDs) currently spectating this event
  *  - damageByPlayer           : total damage dealt per participant (for ranking)
+ *  - currentStageKey          : which logical stage the event is in (may be null if idle)
+ *  - running                  : true while the event is active
+ *  - joinWindowOpen           : true while /dragons join is allowed
  *
  * Note: configuration fields are immutable; the participants/spectators & damage maps are
  * mutable runtime state owned by this event instance.
@@ -78,6 +83,12 @@ public final class EventModel {
     private final String id;
     private final String displayName;
     private final boolean enabled;
+
+    /**
+     * If true, players keep their inventory on death during this event instead of
+     * dropping items. Intended to be driven from YAML.
+     */
+    private final boolean keepInventory;
 
     /** Non-boss dragon config IDs. */
     private final List<String> dragonIds;
@@ -161,6 +172,23 @@ public final class EventModel {
      */
     private final ConcurrentMap<UUID, Double> damageByPlayer = new ConcurrentHashMap<>();
 
+    /**
+     * Current logical stage of this event (runtime only).
+     * May be null if the event has not started yet or has fully ended.
+     */
+    private volatile EventStageKey currentStageKey = null;
+
+    /**
+     * True while this event is actively running (has started and not yet fully ended).
+     */
+    private volatile boolean running = false;
+
+    /**
+     * True while players are allowed to /dragons join this event.
+     * Usually only true during the LOBBY stage (join window).
+     */
+    private volatile boolean joinWindowOpen = false;
+
     // ---------------------------------------------------------------------
     // Construction
     // ---------------------------------------------------------------------
@@ -170,6 +198,8 @@ public final class EventModel {
      * dragonSpawn will default to the center of the dragonRegion.
      *
      * `enabled` is explicit so the loader can wire from YAML.
+     * keepInventory defaults to false here; if you want per-event control,
+     * call a full constructor from your loader.
      */
     public EventModel(String id,
                       String displayName,
@@ -188,6 +218,7 @@ public final class EventModel {
                 id,
                 displayName,
                 enabled,
+                /* keepInventory */ false,
                 dragonIds,
                 bossDragonId,
                 dragonCornerA,
@@ -210,7 +241,7 @@ public final class EventModel {
      * ORIGINAL full constructor signature (backwards compatible).
      *
      * NOTE: This delegates to the new constructor and treats completionSpawn as null
-     * (which means "fall back to dragonSpawn").
+     * (which means "fall back to dragonSpawn") and keepInventory as false by default.
      */
     public EventModel(String id,
                       String displayName,
@@ -233,6 +264,7 @@ public final class EventModel {
                 id,
                 displayName,
                 enabled,
+                /* keepInventory */ false,
                 dragonIds,
                 bossDragonId,
                 dragonCornerA,
@@ -253,11 +285,14 @@ public final class EventModel {
 
     /**
      * NEW full constructor including explicit dragonSpawn + completionSpawn +
-     * per-stage areas + rewards.
+     * per-stage areas + rewards + keepInventory.
+     *
+     * This is the canonical constructor all others delegate to.
      */
     public EventModel(String id,
                       String displayName,
                       boolean enabled,
+                      boolean keepInventory,
                       List<String> dragonIds,
                       String bossDragonId,
                       Location dragonCornerA,
@@ -286,6 +321,7 @@ public final class EventModel {
         this.id = id;
         this.displayName = (displayName == null || displayName.isBlank()) ? id : displayName;
         this.enabled = enabled;
+        this.keepInventory = keepInventory;
 
         this.dragonIds = unmodifiableCopy(dragonIds);
         this.bossDragonId = Objects.requireNonNull(bossDragonId, "bossDragonId");
@@ -401,6 +437,11 @@ public final class EventModel {
         return enabled;
     }
 
+    /** If true, players keep inventory on death during this event. */
+    public boolean keepInventory() {
+        return keepInventory;
+    }
+
     /** Non-boss dragon config IDs. */
     public List<String> dragonIds() {
         return dragonIds;
@@ -478,6 +519,55 @@ public final class EventModel {
     /** Rank-based damage rewards (chancePercent 0.0–100.0). */
     public List<RankingRewardSpec> rankingRewards() {
         return rankingRewards;
+    }
+
+    // ---------------------------------------------------------------------
+    // Runtime stage & lifecycle
+    // ---------------------------------------------------------------------
+
+    /**
+     * Current runtime stage key for this event.
+     * May be null if not running / fully ended / unknown.
+     */
+    public EventStageKey currentStageKey() {
+        return currentStageKey;
+    }
+
+    /**
+     * Update the current runtime stage. May be set to null to indicate
+     * "no active stage" (idle/finished/misconfigured).
+     */
+    public void setCurrentStageKey(EventStageKey newStage) {
+        this.currentStageKey = newStage;
+    }
+
+    /**
+     * True while this event is currently running (active instance).
+     */
+    public boolean isRunning() {
+        return running;
+    }
+
+    /**
+     * Flip running state (called by your event runtime / scheduler).
+     */
+    public void setRunning(boolean running) {
+        this.running = running;
+    }
+
+    /**
+     * True while the join window is currently open for this event.
+     * Used by /dragons join logic to decide if joining is allowed.
+     */
+    public boolean isJoinWindowOpen() {
+        return joinWindowOpen;
+    }
+
+    /**
+     * Flip join window availability (called by your event runtime).
+     */
+    public void setJoinWindowOpen(boolean joinWindowOpen) {
+        this.joinWindowOpen = joinWindowOpen;
     }
 
     // ---------------------------------------------------------------------
@@ -561,6 +651,20 @@ public final class EventModel {
     // Damage tracking (runtime)
     // ---------------------------------------------------------------------
 
+    /** Spawn location used when a player joins the event.
+     *  Prefer the INITIAL stage's spawn if configured; otherwise fall back to the global dragonSpawn.
+     */
+    public Location initialStageSpawn() {
+        // Try a per-stage area for INITIAL
+        StageArea initialArea = stageAreaOrNull(EventStageKey.INITIAL);
+        if (initialArea != null) {
+            return initialArea.spawn();
+        }
+
+        // Fallback: global dragon spawn
+        return dragonSpawn();
+    }
+
     /**
      * Add damage dealt by a participant to their running total.
      *
@@ -610,6 +714,31 @@ public final class EventModel {
                 this.id,
                 this.displayName,
                 newEnabled,
+                this.keepInventory,
+                this.dragonIds,
+                this.bossDragonId,
+                this.dragonRegion.cornerMin(),
+                this.dragonRegion.cornerMax(),
+                this.dragonSpawn,
+                this.completionSpawn,
+                this.playingAreas,
+                this.bellyTriggerHealthFraction,
+                this.maxDuration,
+                this.joinWindowLength,
+                this.joinReminderInterval,
+                this.schedule,
+                this.stages,
+                this.completionRewards,
+                this.rankingRewards
+        );
+    }
+
+    public EventModel withKeepInventory(boolean newKeepInventory) {
+        return new EventModel(
+                this.id,
+                this.displayName,
+                this.enabled,
+                newKeepInventory,
                 this.dragonIds,
                 this.bossDragonId,
                 this.dragonRegion.cornerMin(),
@@ -633,6 +762,7 @@ public final class EventModel {
                 this.id,
                 this.displayName,
                 this.enabled,
+                this.keepInventory,
                 this.dragonIds,
                 this.bossDragonId,
                 this.dragonRegion.cornerMin(),
@@ -656,6 +786,7 @@ public final class EventModel {
                 this.id,
                 this.displayName,
                 this.enabled,
+                this.keepInventory,
                 this.dragonIds,
                 this.bossDragonId,
                 this.dragonRegion.cornerMin(),
@@ -679,6 +810,7 @@ public final class EventModel {
                 this.id,
                 this.displayName,
                 this.enabled,
+                this.keepInventory,
                 newDragonIds,
                 this.bossDragonId,
                 this.dragonRegion.cornerMin(),
@@ -702,6 +834,7 @@ public final class EventModel {
                 this.id,
                 this.displayName,
                 this.enabled,
+                this.keepInventory,
                 this.dragonIds,
                 Objects.requireNonNull(newBossId, "newBossId"),
                 this.dragonRegion.cornerMin(),
@@ -725,6 +858,7 @@ public final class EventModel {
                 this.id,
                 this.displayName,
                 this.enabled,
+                this.keepInventory,
                 this.dragonIds,
                 this.bossDragonId,
                 cornerA,
@@ -748,6 +882,7 @@ public final class EventModel {
                 this.id,
                 this.displayName,
                 this.enabled,
+                this.keepInventory,
                 this.dragonIds,
                 this.bossDragonId,
                 cornerA,
@@ -771,6 +906,7 @@ public final class EventModel {
                 this.id,
                 this.displayName,
                 this.enabled,
+                this.keepInventory,
                 this.dragonIds,
                 this.bossDragonId,
                 this.dragonRegion.cornerMin(),
@@ -794,6 +930,7 @@ public final class EventModel {
                 this.id,
                 this.displayName,
                 this.enabled,
+                this.keepInventory,
                 this.dragonIds,
                 this.bossDragonId,
                 this.dragonRegion.cornerMin(),
@@ -817,6 +954,7 @@ public final class EventModel {
                 this.id,
                 this.displayName,
                 this.enabled,
+                this.keepInventory,
                 this.dragonIds,
                 this.bossDragonId,
                 this.dragonRegion.cornerMin(),
@@ -840,6 +978,7 @@ public final class EventModel {
                 this.id,
                 this.displayName,
                 this.enabled,
+                this.keepInventory,
                 this.dragonIds,
                 this.bossDragonId,
                 this.dragonRegion.cornerMin(),
@@ -863,6 +1002,7 @@ public final class EventModel {
                 this.id,
                 this.displayName,
                 this.enabled,
+                this.keepInventory,
                 this.dragonIds,
                 this.bossDragonId,
                 this.dragonRegion.cornerMin(),
@@ -886,6 +1026,7 @@ public final class EventModel {
                 this.id,
                 this.displayName,
                 this.enabled,
+                this.keepInventory,
                 this.dragonIds,
                 this.bossDragonId,
                 this.dragonRegion.cornerMin(),
@@ -909,6 +1050,7 @@ public final class EventModel {
                 this.id,
                 this.displayName,
                 this.enabled,
+                this.keepInventory,
                 this.dragonIds,
                 this.bossDragonId,
                 this.dragonRegion.cornerMin(),
@@ -932,6 +1074,7 @@ public final class EventModel {
                 this.id,
                 this.displayName,
                 this.enabled,
+                this.keepInventory,
                 this.dragonIds,
                 this.bossDragonId,
                 this.dragonRegion.cornerMin(),
@@ -956,6 +1099,7 @@ public final class EventModel {
                 "id='" + id + '\'' +
                 ", displayName='" + displayName + '\'' +
                 ", enabled=" + enabled +
+                ", keepInventory=" + keepInventory +
                 ", dragonIds=" + dragonIds +
                 ", bossDragonId='" + bossDragonId + '\'' +
                 ", dragonRegion=" + dragonRegion +
@@ -970,6 +1114,9 @@ public final class EventModel {
                 ", stages=" + stages +
                 ", completionRewards=" + completionRewards +
                 ", rankingRewards=" + rankingRewards +
+                ", running=" + running +
+                ", joinWindowOpen=" + joinWindowOpen +
+                ", currentStageKey=" + currentStageKey +
                 ", participants=" + participants.keySet() +
                 ", spectators=" + spectators.keySet() +
                 ", damageByPlayerSize=" + damageByPlayer.size() +

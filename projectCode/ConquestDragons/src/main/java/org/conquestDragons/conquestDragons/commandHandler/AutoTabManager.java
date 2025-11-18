@@ -4,6 +4,8 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.conquestDragons.conquestDragons.commandHandler.permissionHandler.PermissionManager;
 import org.conquestDragons.conquestDragons.commandHandler.permissionHandler.PermissionModels;
+import org.conquestDragons.conquestDragons.eventHandler.EventManager;
+import org.conquestDragons.conquestDragons.eventHandler.EventModel;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
@@ -19,14 +21,22 @@ import java.util.Locale;
  */
 public class AutoTabManager {
 
-    // Root-level subcommands available to all players
-    private static final List<String> USER_SUBCOMMANDS = List.of("help", "admin");
+    // Root-level user subcommands
+    private static final List<String> USER_SUBCOMMANDS = List.of(
+            "help",
+            "join",
+            "leave",
+            "spectate"
+    );
 
-    // Admin-only root subcommand
+    // Admin root label
     private static final String ADMIN_ROOT = "admin";
 
     // Admin subcommands (expand as needed)
-    private static final List<String> ADMIN_SUBCOMMANDS = List.of("reload", "help");
+    private static final List<String> ADMIN_SUBCOMMANDS = List.of(
+            "reload",
+            "help"
+    );
 
     /**
      * Returns a list of tab suggestions based on command input and permissions.
@@ -49,6 +59,51 @@ public class AutoTabManager {
             }
 
             return partialMatch(args[0], suggestions);
+        }
+
+        // /dragons join <eventName>
+        if (args.length == 2 && args[0].equalsIgnoreCase("join")) {
+            // Only suggest if player has join permission
+            if (!PermissionManager.has(sender, PermissionModels.USER_JOIN)) {
+                return Collections.emptyList();
+            }
+
+            // Suggest event ids based on partial
+            List<String> eventIds = EventManager.all().stream()
+                    .map(EventModel::id)
+                    .toList();
+
+            return partialMatch(args[1], eventIds);
+        }
+
+        // /dragons leave  -> no further args
+        if (args.length >= 2 && args[0].equalsIgnoreCase("leave")) {
+            // No extra arguments for /dragons leave
+            return Collections.emptyList();
+        }
+
+        // /dragons spectate <eventName|leave>
+        if (args.length == 2 && args[0].equalsIgnoreCase("spectate")) {
+            List<String> options = new ArrayList<>();
+
+            // /dragons spectate leave
+            if (PermissionManager.has(sender, PermissionModels.USER_SPECTATE_LEAVE)) {
+                options.add("leave");
+            }
+
+            // /dragons spectate <eventName>
+            if (PermissionManager.has(sender, PermissionModels.USER_SPECTATE)) {
+                List<String> eventIds = EventManager.all().stream()
+                        .map(EventModel::id)
+                        .toList();
+                options.addAll(eventIds);
+            }
+
+            if (options.isEmpty()) {
+                return Collections.emptyList();
+            }
+
+            return partialMatch(args[1], options);
         }
 
         // /dragons admin <sub>

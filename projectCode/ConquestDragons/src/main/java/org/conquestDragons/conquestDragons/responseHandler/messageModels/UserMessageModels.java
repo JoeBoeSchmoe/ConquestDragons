@@ -6,10 +6,6 @@ package org.conquestDragons.conquestDragons.responseHandler.messageModels;
  *
  * Mirrors userMessages.yml under:
  *   messages.user.*
- *
- * Naming format:
- *   CATEGORY_STAGE_TYPE
- *   e.g., EVENT_START, INITIAL_STAGE_TIMED, FINAL_STAGE_END
  */
 public enum UserMessageModels {
 
@@ -21,6 +17,24 @@ public enum UserMessageModels {
     USER_HELP("messages.user.help"),
 
     // =====================================================
+    // 🐉 JOIN COMMAND MESSAGES
+    // =====================================================
+
+    USER_JOIN_USAGE("messages.user.join-usage"),
+    USER_JOIN_SUCCESS("messages.user.join-success"),
+    USER_JOIN_ALREADY_IN_EVENT("messages.user.join-already-in-event"),
+    USER_JOIN_NOT_STARTED("messages.user.join-not-started"),
+    USER_JOIN_WINDOW_CLOSED("messages.user.join-window-closed"),
+
+    // =====================================================
+    // 🐉 LEAVE COMMAND MESSAGES
+    // =====================================================
+
+    USER_LEAVE_SUCCESS("messages.user.leave-success"),
+    USER_LEAVE_NOT_IN_EVENT("messages.user.leave-not-in-event"),
+    USER_LEAVE_BLOCKED_DURING_EVENT("messages.user.leave-blocked-during-event"),
+
+    // =====================================================
     // 🐉 EVENT LIFECYCLE
     // =====================================================
 
@@ -28,7 +42,7 @@ public enum UserMessageModels {
 
     EVENT_START("messages.user.EventStart"),
     EVENT_START_REMINDER("messages.user.EventStartReminder"),
-    EVENT_STARTED("user.EventStarted"),
+    EVENT_STARTED("messages.user.EventStarted"),
 
     // =====================================================
     // 🏟 LOBBY STAGE (start → timed → end)

@@ -22,6 +22,30 @@ messages:
       prefix: false
       sound: { type: UI_BUTTON_CLICK, volume: 1.0, pitch: 1.0 }
       particles: [ { type: ENCHANTMENT_TABLE, count: 4, offset: [0.2, 0.3, 0.2], speed: 0.01 } ]
+      effects: [ { type: SPEED, amplifier: 0, duration: 60 } ]
+      bossbar: { text: "<yellow>Need Help?</yellow>", color: "YELLOW", overlay: "PROGRESS", time: 60, progress: 0.5 }
+      actionbar: { text: "<gray>Try /dragons help", duration: 60 }
+      title:
+        text: "<gold><bold>dragons Help</bold></gold>"
+        subtitle: "<gray>Use /dragons help to get started."
+        timings: { fadeIn: 10, stay: 40, fadeOut: 20 }
+
+    # 💡 USER HELP USAGE (nudge)
+    help-usage:
+      text:
+        - "<gray>Use <yellow>/dragons help</yellow> to get started."
+      hover: "<gray>See available commands and info.</gray>"
+      click: "/dragons help"
+      clickType: "SUGGEST_COMMAND"
+      components:
+        - text: "<aqua>[Open Help]</aqua>"
+          hover: "<gray>Click to view help menu</gray>"
+          click: "/dragons help"
+          clickType: "SUGGEST_COMMAND"
+      prefix: false
+      sound: { type: UI_BUTTON_CLICK, volume: 1.0, pitch: 1.0 }
+      particles: [ { type: ENCHANTMENT_TABLE, count: 4, offset: [0.2, 0.3, 0.2], speed: 0.01 } ]
+      effects: [ { type: SPEED, amplifier: 0, duration: 60 } ]
       bossbar: { text: "<yellow>Need Help?</yellow>", color: "YELLOW", overlay: "PROGRESS", time: 60, progress: 0.5 }
       actionbar: { text: "<gray>Try /dragons help", duration: 60 }
       title:
@@ -39,14 +63,47 @@ messages:
       click: ""
       clickType: "NONE"
       components:
-        - text: " <white>/dragons help <gray>- View this help menu"
-          hover: "<gray>Shows all player commands</gray>"
+        # ── User Commands ────────────────────────────────
+        - text: " <white>/dragons help <gray>- View this help menu</gray>"
+          hover: "<gray>Shows all player commands.</gray>"
           click: "/dragons help"
           clickType: "SUGGEST_COMMAND"
           permission: "conquestdragons.user.help"
+
+        - text: " <white>/dragons join <yellow><eventName></yellow> <gray>- Join a dragon event</gray>"
+          hover: "<gray>Join an active dragon event by its name.</gray>"
+          click: "/dragons join "
+          clickType: "SUGGEST_COMMAND"
+          permission: "conquestdragons.user.join"
+
+        - text: " <white>/dragons leave <gray>- Leave your current dragon event</gray>"
+          hover: "<gray>Exit the event you are currently participating in.</gray>"
+          click: "/dragons leave"
+          clickType: "SUGGEST_COMMAND"
+          permission: "conquestdragons.user.leave"
+
+        - text: " <white>/dragons spectate <yellow><eventName></yellow> <gray>- Watch an event as spectator</gray>"
+          hover: "<gray>Spectate a dragon event without participating.</gray>"
+          click: "/dragons spectate "
+          clickType: "SUGGEST_COMMAND"
+          permission: "conquestdragons.user.spectate"
+
+        - text: " <white>/dragons spectate leave <gray>- Stop spectating an event</gray>"
+          hover: "<gray>Leave spectator mode and return to normal play.</gray>"
+          click: "/dragons spectate leave"
+          clickType: "SUGGEST_COMMAND"
+          permission: "conquestdragons.user.spectate.leave"
+
+        # ── Admin Commands (only visible with permission) ─
+        - text: " <dark_red>/dragons admin reload <gray>- Reload ConquestDragons config</gray>"
+          hover: "<gray>Reloads all ConquestDragons configuration files.</gray>"
+          click: "/dragons admin reload"
+          clickType: "SUGGEST_COMMAND"
+          permission: "conquestdragons.admin.reload"
+
       prefix: false
       sound: { type: UI_BUTTON_CLICK, volume: 1.0, pitch: 1.1 }
-      particles: [ { type: ENCHANTMENT_TABLE, count: 5, offset: [0.2, 0.3, 0.2], speed: 0.02 } ]
+      particles: [ { type: ENCHANTMENT_TABLE, count: 5, offset: [ 0.2, 0.3, 0.2 ], speed: 0.02 } ]
       effects: [ { type: SPEED, amplifier: 0, duration: 60 } ]
       bossbar: { text: "<aqua>User Help Page", color: "BLUE", overlay: "PROGRESS", time: 60, progress: 1.0 }
       actionbar: { text: "<gray>You're viewing user commands.", duration: 60 }
@@ -67,6 +124,7 @@ messages:
       prefix: false
       sound: { type: BLOCK_NOTE_BLOCK_BELL, volume: 1.0, pitch: 1.2 }
       particles: [ { type: ENCHANTMENT_TABLE, count: 8, offset: [0.3,0.5,0.3], speed: 0.02 }, { type: DRAGON_BREATH, count: 6, offset: [0.4,0.8,0.4], speed: 0.03 } ]
+      effects: [ { type: SPEED, amplifier: 0, duration: 80 } ]
       bossbar: { text: "<dark_purple>🐉 Dragons attacking in <gold>{time}</gold>…</dark_purple>", color: "PURPLE", overlay: "PROGRESS", time: 80, progress: 1.0 }
       actionbar: { text: "<yellow>⏳ Dragons arrive in <gold>{time}</gold>!</yellow>", duration: 70 }
       title:
@@ -87,6 +145,7 @@ messages:
       prefix: false
       sound: { type: ENTITY_ENDER_DRAGON_GROWL, volume: 1.0, pitch: 1.0 }
       particles: [ { type: DRAGON_BREATH, count: 20, offset: [0.5, 0.8, 0.5], speed: 0.02 } ]
+      effects: [ { type: ABSORPTION, amplifier: 0, duration: 120 } ]
       bossbar: { }
       actionbar: { text: "<yellow>Use <gold>/dragons join</gold> to enter!", duration: 120 }
       title:
@@ -107,6 +166,7 @@ messages:
       prefix: false
       sound: { type: BLOCK_NOTE_BLOCK_BELL, volume: 1.0, pitch: 1.3 }
       particles: [ { type: ENCHANTMENT_TABLE, count: 8, offset: [0.3, 0.5, 0.3], speed: 0.02 } ]
+      effects: [ { type: SPEED, amplifier: 0, duration: 80 } ]
       bossbar: { }
       actionbar: { text: "<gray>Last call! <yellow>{time}</yellow> left — use <yellow>/dragons join</yellow>.</gray>", duration: 80 }
       title:
@@ -127,6 +187,7 @@ messages:
       prefix: false
       sound: { type: ENTITY_ENDER_DRAGON_GROWL, volume: 1.2, pitch: 1.0 }
       particles: [ { type: DRAGON_BREATH, count: 15, offset: [0.3, 0.8, 0.3], speed: 0.02 } ]
+      effects: [ { type: DAMAGE_RESISTANCE, amplifier: 0, duration: 100 } ]
       bossbar: { }
       actionbar: { text: "<green>The Dragon Event is now underway!</green>", duration: 80 }
       title:
@@ -152,6 +213,7 @@ messages:
         prefix: false
         sound: { type: UI_BUTTON_CLICK, volume: 1.0, pitch: 1.0 }
         particles: [ { type: ENCHANTMENT_TABLE, count: 10, offset: [0.3, 0.6, 0.3], speed: 0.02 } ]
+        effects: [ { type: REGENERATION, amplifier: 0, duration: 80 } ]
         bossbar: { }
         actionbar: { text: "<aqua>Join window open — get ready!</aqua>", duration: 70 }
         title:
@@ -171,6 +233,7 @@ messages:
         prefix: false
         sound: { type: BLOCK_NOTE_BLOCK_HAT, volume: 1.0, pitch: 1.4 }
         particles: [ { type: SPELL_WITCH, count: 6, offset: [0.2, 0.4, 0.2], speed: 0.04 } ]
+        effects: [ { type: SPEED, amplifier: 0, duration: 60 } ]
         bossbar: { }
         actionbar: { text: "<yellow>The event begins shortly…</yellow>", duration: 60 }
 
@@ -187,6 +250,7 @@ messages:
         prefix: false
         sound: { type: ENTITY_EXPERIENCE_ORB_PICKUP, volume: 1.0, pitch: 1.2 }
         particles: [ { type: VILLAGER_HAPPY, count: 10, offset: [0.2, 0.4, 0.2], speed: 0.05 } ]
+        effects: [ { type: ABSORPTION, amplifier: 0, duration: 80 } ]
         bossbar: { }
         actionbar: { text: "<green>Join window closed — prepare for battle!</green>", duration: 70 }
         title:
@@ -211,6 +275,7 @@ messages:
         prefix: false
         sound: { type: ENTITY_ENDER_DRAGON_GROWL, volume: 1.2, pitch: 1.2 }
         particles: [ { type: DRAGON_BREATH, count: 15, offset: [0.3, 0.7, 0.3], speed: 0.02 } ]
+        effects: [ { type: STRENGTH, amplifier: 0, duration: 80 } ]
         bossbar: { }
         actionbar: { text: "<yellow>Initial dragons have appeared!</yellow>", duration: 80 }
         title:
@@ -230,6 +295,7 @@ messages:
         prefix: false
         sound: { type: BLOCK_NOTE_BLOCK_PLING, volume: 1.0, pitch: 1.5 }
         particles: [ { type: SPELL_WITCH, count: 10, offset: [0.2, 0.4, 0.2], speed: 0.05 } ]
+        effects: [ { type: SPEED, amplifier: 0, duration: 60 } ]
         bossbar: { }
         actionbar: { text: "<gray>Hold strong—the fight isn’t over.</gray>", duration: 60 }
 
@@ -246,6 +312,7 @@ messages:
         prefix: false
         sound: { type: ENTITY_PLAYER_LEVELUP, volume: 1.0, pitch: 1.2 }
         particles: [ { type: FIREWORK, count: 2, offset: [0.4, 0.8, 0.4], speed: 1.0 } ]
+        effects: [ { type: REGENERATION, amplifier: 0, duration: 80 } ]
         bossbar: { }
         actionbar: { text: "<green>Prepare for the next wave!</green>", duration: 70 }
         title:
@@ -270,6 +337,7 @@ messages:
         prefix: false
         sound: { type: ENTITY_ENDER_DRAGON_GROWL, volume: 1.3, pitch: 0.9 }
         particles: [ { type: DRAGON_BREATH, count: 25, offset: [0.4, 1.0, 0.4], speed: 0.04 } ]
+        effects: [ { type: BLINDNESS, amplifier: 0, duration: 60 }, { type: SLOWNESS, amplifier: 0, duration: 60 } ]
         bossbar: { }
         actionbar: { text: "<red><bold>BELLY PHASE — HIGH THREAT!</bold></red>", duration: 90 }
         title:
@@ -289,6 +357,7 @@ messages:
         prefix: false
         sound: { type: BLOCK_NOTE_BLOCK_BASS, volume: 1.0, pitch: 0.6 }
         particles: [ { type: LAVA, count: 8, offset: [0.2, 0.4, 0.2], speed: 0.01 } ]
+        effects: [ { type: SLOWNESS, amplifier: 0, duration: 60 } ]
         bossbar: { }
         actionbar: { text: "<dark_red>⚠ Danger Level Rising…</dark_red>", duration: 60 }
 
@@ -305,6 +374,7 @@ messages:
         prefix: false
         sound: { type: ENTITY_PLAYER_LEVELUP, volume: 1.0, pitch: 1.3 }
         particles: [ { type: FIREWORK, count: 2, offset: [0.5, 0.9, 0.5], speed: 1.0 } ]
+        effects: [ { type: REGENERATION, amplifier: 0, duration: 60 } ]
         bossbar: { }
         actionbar: { text: "<green>You’ve escaped — get back in the fight!</green>", duration: 70 }
         title:
@@ -330,6 +400,7 @@ messages:
         prefix: false
         sound: { type: ENTITY_ENDER_DRAGON_GROWL, volume: 1.1, pitch: 1.0 }
         particles: [ { type: DRAGON_BREATH, count: 12, offset: [0.3, 0.7, 0.3], speed: 0.02 } ]
+        effects: [ { type: STRENGTH, amplifier: 0, duration: 80 } ]
         bossbar: { }
         actionbar: { text: "<blue>Back in the arena — help finish the dragons!</blue>", duration: 80 }
         title:
@@ -349,6 +420,7 @@ messages:
         prefix: false
         sound: { type: BLOCK_NOTE_BLOCK_BELL, volume: 1.0, pitch: 1.4 }
         particles: [ { type: ENCHANTMENT_TABLE, count: 10, offset: [0.2, 0.4, 0.2], speed: 0.03 } ]
+        effects: [ { type: SPEED, amplifier: 0, duration: 60 } ]
         bossbar: { }
         actionbar: { text: "<aqua>Track down the last dragons!</aqua>", duration: 60 }
 
@@ -365,6 +437,7 @@ messages:
         prefix: false
         sound: { type: ENTITY_PLAYER_LEVELUP, volume: 1.0, pitch: 1.4 }
         particles: [ { type: FIREWORK, count: 3, offset: [0.5, 0.9, 0.5], speed: 1.2 } ]
+        effects: [ { type: DAMAGE_RESISTANCE, amplifier: 0, duration: 80 } ]
         bossbar: { }
         actionbar: { text: "<light_purple>Prepare yourselves — the final foe approaches.</light_purple>", duration: 80 }
         title:
@@ -389,6 +462,7 @@ messages:
         prefix: false
         sound: { type: ENTITY_ENDER_DRAGON_GROWL, volume: 1.5, pitch: 0.8 }
         particles: [ { type: ENCHANTMENT_TABLE, count: 20, offset: [0.4,1.0,0.4], speed: 0.03 } ]
+        effects: [ { type: STRENGTH, amplifier: 1, duration: 100 }, { type: ABSORPTION, amplifier: 0, duration: 100 } ]
         bossbar: { }
         actionbar: { text: "<light_purple><bold>FINAL STAGE — FIGHT FOR VICTORY!</bold></light_purple>", duration: 100 }
         title:
@@ -408,6 +482,7 @@ messages:
         prefix: false
         sound: { type: BLOCK_NOTE_BLOCK_CHIME, volume: 1.0, pitch: 1.6 }
         particles: [ { type: SPELL_WITCH, count: 12, offset: [0.3,0.6,0.3], speed: 0.05 } ]
+        effects: [ { type: SPEED, amplifier: 0, duration: 60 } ]
         bossbar: { }
         actionbar: { text: "<light_purple>⚔ Keep pushing — final stage ongoing!</light_purple>", duration: 60 }
 
@@ -424,11 +499,208 @@ messages:
         prefix: false
         sound: { type: ENTITY_ENDER_DRAGON_DEATH, volume: 1.0, pitch: 1.0 }
         particles: [ { type: FIREWORK, count: 5, offset: [0.5,1.0,0.5], speed: 1.2 } ]
+        effects: [ { type: REGENERATION, amplifier: 1, duration: 100 } ]
         bossbar: { }
         actionbar: { text: "<yellow>Congratulations — the dragon has been slain!</yellow>", duration: 80 }
         title:
           text: "<gold><bold>Stage Complete!</bold></gold>"
           subtitle: "<gray>The dragon falters — the end is near.</gray>"
           timings: { fadeIn: 10, stay: 50, fadeOut: 20 }
+
+    # =========================
+    # 🐉 JOIN COMMAND MESSAGES
+    # =========================
+
+    # 📌 /dragons join USAGE HINT
+    join-usage:
+      text:
+        - "<gray>Usage:</gray> <yellow>/dragons join <eventName></yellow>"
+        - "<dark_gray>Tip:</dark_gray> <gray>Use <yellow>/dragons help</yellow> to see available events.</gray>"
+      hover: "<gray>Join a dragon event by its name, e.g. <yellow>/dragons join defaultEvent</yellow>.</gray>"
+      click: "/dragons join "
+      clickType: "SUGGEST_COMMAND"
+      components:
+        - text: "<aqua>[Autofill Join Command]</aqua>"
+          hover: "<gray>Click to autofill /dragons join</gray>"
+          click: "/dragons join "
+          clickType: "SUGGEST_COMMAND"
+      prefix: false
+      sound: { type: UI_BUTTON_CLICK, volume: 1.0, pitch: 1.1 }
+      particles: [ { type: ENCHANTMENT_TABLE, count: 6, offset: [0.2, 0.4, 0.2], speed: 0.02 } ]
+      effects: [ { type: SPEED, amplifier: 0, duration: 40 } ]
+      bossbar: { text: "<yellow>Usage: /dragons join <eventName></yellow>", color: "YELLOW", overlay: "PROGRESS", time: 40, progress: 0.5 }
+      actionbar: { text: "<gray>Specify which event you want to join.</gray>", duration: 40 }
+      title:
+        text: "<gold><bold>How to Join</bold></gold>"
+        subtitle: "<gray>Use /dragons join <yellow><eventName></yellow></gray>"
+        timings: { fadeIn: 10, stay: 30, fadeOut: 15 }
+
+    # ✅ SUCCESSFUL JOIN
+    join-success:
+      text:
+        - "<green><bold>✅ You joined the Dragon Event!</bold></green>"
+        - "<gray>Event:</gray> <aqua><bold>{eventName}</bold></aqua>"
+        - "<yellow>Prepare yourself — the ritual will begin soon.</yellow>"
+      hover: "<gray>Get ready for incoming dragons in {eventName}.</gray>"
+      click: ""
+      clickType: "NONE"
+      components: [ ]
+      prefix: false
+      sound: { type: ENTITY_ENDERMAN_TELEPORT, volume: 1.0, pitch: 1.0 }
+      particles: [ { type: ENCHANTMENT_TABLE, count: 10, offset: [0.3, 0.7, 0.3], speed: 0.03 } ]
+      effects: [ { type: ABSORPTION, amplifier: 0, duration: 100 }, { type: SPEED, amplifier: 0, duration: 80 } ]
+      bossbar: { text: "<aqua>Joined event: <yellow>{eventName}</yellow></aqua>", color: "BLUE", overlay: "PROGRESS", time: 80, progress: 1.0 }
+      actionbar: { text: "<green>You are now queued for <yellow>{eventName}</yellow>.</green>", duration: 80 }
+      title:
+        text: "<green><bold>Joined Event!</bold></green>"
+        subtitle: "<gray>Get ready for <yellow>{eventName}</yellow>.</gray>"
+        timings: { fadeIn: 10, stay: 40, fadeOut: 20 }
+
+    # 🔁 ALREADY IN EVENT
+    join-already-in-event:
+      text:
+        - "<yellow><bold>⚠ You are already in a Dragon Event!</bold></yellow>"
+        - "<gray>Active event:</gray> <aqua>{eventName}</aqua>"
+        - "<dark_gray>If you’re stuck, contact a staff member.</dark_gray>"
+      hover: "<gray>You can’t join another event while in {eventName}.</gray>"
+      click: "/dragons help"
+      clickType: "SUGGEST_COMMAND"
+      components:
+        - text: "<aqua>[Open Dragons Help]</aqua>"
+          hover: "<gray>Click to view /dragons help</gray>"
+          click: "/dragons help"
+          clickType: "SUGGEST_COMMAND"
+      prefix: false
+      sound: { type: BLOCK_NOTE_BLOCK_BASS, volume: 1.0, pitch: 0.9 }
+      particles: [ { type: SPELL_WITCH, count: 6, offset: [0.2, 0.4, 0.2], speed: 0.03 } ]
+      effects: [ { type: SLOWNESS, amplifier: 0, duration: 40 } ]
+      bossbar: { text: "<yellow>Already participating in <aqua>{eventName}</aqua>.</yellow>", color: "YELLOW", overlay: "PROGRESS", time: 60, progress: 0.8 }
+      actionbar: { text: "<gray>You’re already part of <yellow>{eventName}</yellow>.</gray>", duration: 60 }
+      title:
+        text: "<yellow><bold>Already in Event</bold></yellow>"
+        subtitle: "<gray>You’re currently in <aqua>{eventName}</aqua>.</gray>"
+        timings: { fadeIn: 10, stay: 35, fadeOut: 15 }
+
+    # 🕒 EVENT HASN'T STARTED YET
+    join-not-started:
+      text:
+        - "<gold><bold>⏱ That Dragon Event hasn’t started yet.</bold></gold>"
+        - "<gray>Event:</gray> <aqua>{eventName}</aqua>"
+        - "<yellow>Watch chat for announcements when it begins.</yellow>"
+      hover: "<gray>The join window for {eventName} is not open yet.</gray>"
+      click: ""
+      clickType: "NONE"
+      components: [ ]
+      prefix: false
+      sound: { type: BLOCK_NOTE_BLOCK_HAT, volume: 1.0, pitch: 1.3 }
+      particles: [ { type: ENCHANTMENT_TABLE, count: 6, offset: [0.2, 0.4, 0.2], speed: 0.02 } ]
+      effects: [ { type: SLOW_FALLING, amplifier: 0, duration: 40 } ]
+      bossbar: { text: "<yellow>{eventName}</yellow><gray> hasn’t started yet.</gray>", color: "YELLOW", overlay: "PROGRESS", time: 60, progress: 0.3 }
+      actionbar: { text: "<gray>The join window for <yellow>{eventName}</yellow> is not open.</gray>", duration: 60 }
+      title:
+        text: "<gold><bold>Not Yet...</bold></gold>"
+        subtitle: "<gray>{eventName} hasn’t begun.</gray>"
+        timings: { fadeIn: 10, stay: 35, fadeOut: 15 }
+
+    # 🚫 JOIN WINDOW CLOSED
+    join-window-closed:
+      text:
+        - "<red><bold>🚫 You can no longer join this Dragon Event.</bold></red>"
+        - "<gray>Event:</gray> <aqua>{eventName}</aqua>"
+        - "<dark_gray>The join window has closed.</dark_gray>"
+        - "<yellow>You can still <gold>/dragons spectate {eventName}</gold> if allowed.</yellow>"
+      hover: "<gray>The join window for {eventName} is closed.</gray>"
+      click: "/dragons spectate {eventName}"
+      clickType: "SUGGEST_COMMAND"
+      components:
+        - text: "<aqua>[Spectate Event]</aqua>"
+          hover: "<gray>Click to autofill /dragons spectate {eventName}</gray>"
+          click: "/dragons spectate {eventName}"
+          clickType: "SUGGEST_COMMAND"
+      prefix: false
+      sound: { type: BLOCK_NOTE_BLOCK_BASS, volume: 1.0, pitch: 0.7 }
+      particles: [ { type: SMOKE_NORMAL, count: 10, offset: [0.3, 0.5, 0.3], speed: 0.02 } ]
+      effects: [ { type: SLOWNESS, amplifier: 1, duration: 60 } ]
+      bossbar: { text: "<red>Join window closed for <aqua>{eventName}</aqua>.</red>", color: "RED", overlay: "PROGRESS", time: 70, progress: 0.0 }
+      actionbar: { text: "<red>You can’t join <yellow>{eventName}</yellow> anymore.</red>", duration: 70 }
+      title:
+        text: "<red><bold>Join Window Closed</bold></red>"
+        subtitle: "<gray>Try again next time.</gray>"
+        timings: { fadeIn: 10, stay: 40, fadeOut: 20 }
+
+    # =========================
+    # 🐉 LEAVE COMMAND MESSAGES
+    # =========================
+
+    # ✅ SUCCESSFUL LEAVE
+    leave-success:
+      text:
+        - "<green><bold>✔ You have left the Dragon Event.</bold></green>"
+        - "<gray>Event:</gray> <aqua>{eventName}</aqua>"
+        - "<yellow>You may rejoin if the window is still open.</yellow>"
+      hover: "<gray>You have exited {eventName} successfully.</gray>"
+      click: "/dragons join {eventName}"
+      clickType: "SUGGEST_COMMAND"
+      components:
+        - text: "<aqua>[Rejoin Event]</aqua>"
+          hover: "<gray>Click to autofill /dragons join {eventName}</gray>"
+          click: "/dragons join {eventName}"
+          clickType: "SUGGEST_COMMAND"
+      prefix: false
+      sound: { type: ENTITY_PLAYER_LEVELUP, volume: 1.0, pitch: 1.3 }
+      particles: [ { type: VILLAGER_HAPPY, count: 10, offset: [0.3, 0.6, 0.3], speed: 0.03 } ]
+      effects: [ { type: REGENERATION, amplifier: 0, duration: 60 } ]
+      bossbar: { text: "<green>You left <yellow>{eventName}</yellow>.</green>", color: "GREEN", overlay: "PROGRESS", time: 60, progress: 1.0 }
+      actionbar: { text: "<green>You have left the event.</green>", duration: 60 }
+      title:
+        text: "<green><bold>Left Event</bold></green>"
+        subtitle: "<gray>You are no longer participating.</gray>"
+        timings: { fadeIn: 10, stay: 40, fadeOut: 20 }
+
+    # ❌ NOT CURRENTLY IN ANY EVENT
+    leave-not-in-event:
+      text:
+        - "<red><bold>⚠ You are not in a Dragon Event.</bold></red>"
+        - "<gray>You can only leave an event you are currently part of.</gray>"
+        - "<yellow>Use <gold>/dragons join <eventName></gold> to participate.</yellow>"
+      hover: "<gray>You’re not inside an active event.</gray>"
+      click: "/dragons help"
+      clickType: "SUGGEST_COMMAND"
+      components:
+        - text: "<aqua>[Open Dragons Help]</aqua>"
+          hover: "<gray>Click to view /dragons help</gray>"
+          click: "/dragons help"
+          clickType: "SUGGEST_COMMAND"
+      prefix: false
+      sound: { type: BLOCK_NOTE_BLOCK_BASS, volume: 1.0, pitch: 0.8 }
+      particles: [ { type: SMOKE_NORMAL, count: 6, offset: [0.2, 0.4, 0.2], speed: 0.02 } ]
+      effects: [ { type: SLOWNESS, amplifier: 0, duration: 40 } ]
+      bossbar: { text: "<red>You are not in an event.</red>", color: "RED", overlay: "PROGRESS", time: 50, progress: 0.2 }
+      actionbar: { text: "<gray>You are not participating in any event.</gray>", duration: 50 }
+      title:
+        text: "<red><bold>Not in Event</bold></red>"
+        subtitle: "<gray>Nothing to leave.</gray>"
+        timings: { fadeIn: 10, stay: 35, fadeOut: 15 }
+
+    # ⛔ CANNOT LEAVE DURING EVENT (locked stage)
+    leave-blocked-during-event:
+      text:
+        - "<red><bold>⛔ You cannot leave right now!</bold></red>"
+        - "<gray>The event is currently in a locked stage:</gray> <aqua>{stageName}</aqua>"
+        - "<yellow>Please wait until this stage ends.</yellow>"
+      hover: "<gray>You can’t leave during {stageName}.</gray>"
+      click: ""
+      clickType: "NONE"
+      components: [ ]
+      prefix: false
+      sound: { type: ENTITY_ENDER_DRAGON_GROWL, volume: 1.2, pitch: 0.9 }
+      particles: [ { type: DRAGON_BREATH, count: 12, offset: [0.3, 0.8, 0.3], speed: 0.03 } ]
+      effects: [ { type: SLOWNESS, amplifier: 1, duration: 60 }, { type: WEAKNESS, amplifier: 0, duration: 60 } ]
+      bossbar: { text: "<red>Cannot leave during <yellow>{stageName}</yellow>.</red>", color: "RED", overlay: "PROGRESS", time: 70, progress: 0.0 }
+      actionbar: { text: "<red>You cannot leave during <yellow>{stageName}</yellow>!</red>", duration: 70 }
+      title:
+        text: "<dark_red><bold>Blocked</bold></dark_red>"
+        subtitle: "<gray>You must wait for this stage to end.</gray>"
+        timings: { fadeIn: 10, stay: 40, fadeOut: 20 }
 
 # End Of Config :)

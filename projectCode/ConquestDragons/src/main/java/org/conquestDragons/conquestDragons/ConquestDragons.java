@@ -8,6 +8,7 @@ import org.conquestDragons.conquestDragons.commandHandler.CommandManager;
 import org.conquestDragons.conquestDragons.configurationHandler.ConfigurationManager;
 import org.conquestDragons.conquestDragons.configurationHandler.configurationFiles.dataFiles.EventDataFiles;
 import org.conquestDragons.conquestDragons.eventHandler.EventSequenceManager;
+import org.conquestDragons.conquestDragons.listenerHandler.EventRegionManager;
 
 import java.util.*;
 import java.util.logging.Level;
@@ -51,6 +52,7 @@ public final class ConquestDragons extends JavaPlugin {
                 // new PlayerJoinListener()
                 // new ClanChatListener()
                 // new RegionGuardListener()
+                new EventRegionManager()
         );
 
         // ---------------------------------------------------
@@ -60,6 +62,7 @@ public final class ConquestDragons extends JavaPlugin {
 
         getLogger().info("✅  ConquestDragons fully loaded.");
     }
+
 
     @Override
     public void onDisable() {

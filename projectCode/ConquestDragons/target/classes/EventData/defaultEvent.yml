@@ -22,6 +22,12 @@ event:
   # The scheduler / commands should skip running disabled events.
   enabled: true
 
+  # keep-inventory:
+  #   - If true, players KEEP their inventory on death during this event
+  #     (no item drops, no loss).
+  #   - If false or omitted, normal death behavior applies and they drop items.
+  keep-inventory: true
+
   # ---------------------------------------------------
   # DISPLAY NAME (MiniMessage)
   # ---------------------------------------------------
@@ -222,8 +228,7 @@ event:
 
     # Optional pre-event countdown reminders (times BEFORE start)
     # Strings are parsed into Duration offsets: "1H", "30M", "15M", "5M", "1M"
-    pre-start-reminders: [ "1H", "30M", "15M", "5M", "1M" ]
-
+    pre-start-reminders: [ "1H", "30M", "15M", "5M", "1M", "30S", "10S", "5S", "4S", "3S", "2S", "1S" ]
 
   # ---------------------------------------------------
   # JOIN WINDOW & REMINDERS

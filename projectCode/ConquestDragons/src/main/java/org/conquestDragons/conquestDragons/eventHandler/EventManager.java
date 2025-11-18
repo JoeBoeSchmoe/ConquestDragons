@@ -19,7 +19,7 @@ import java.util.concurrent.ConcurrentMap;
  * This manager is intentionally simple and thread-safe:
  *  - events are keyed by normalized id (lowercase)
  *  - config fields inside EventModel are immutable
- *  - runtime state (participants) is owned by the EventModel itself
+ *  - runtime state (participants, running/joinWindow flags) is owned by EventModel itself
  */
 public final class EventManager {
 
@@ -107,6 +107,41 @@ public final class EventManager {
         return Collections.unmodifiableCollection(EVENTS.values());
     }
 
+    /**
+     * All events that are enabled in config (regardless of runtime state).
+     */
+    public static List<EventModel> allEnabled() {
+        return EVENTS.values().stream()
+                .filter(EventModel::enabled)
+                .toList();
+    }
+
+    /**
+     * All events that are currently running (runtime flag) AND enabled.
+     */
+    public static List<EventModel> allRunning() {
+        return EVENTS.values().stream()
+                .filter(EventModel::enabled)
+                .filter(EventModel::isRunning)
+                .toList();
+    }
+
+    /**
+     * All events that are currently joinable:
+     *  - enabled in config
+     *  - currently running
+     *  - join window is open
+     *
+     * This is ideal for /dragons join auto-selection logic.
+     */
+    public static List<EventModel> allJoinable() {
+        return EVENTS.values().stream()
+                .filter(EventModel::enabled)
+                .filter(EventModel::isRunning)
+                .filter(EventModel::isJoinWindowOpen)
+                .toList();
+    }
+
     // ---------------------------------------------------
     // Convenience filters
     // ---------------------------------------------------
@@ -154,7 +189,9 @@ public final class EventManager {
     public record ScheduledEvent(EventModel event, Instant nextRun) { }
 
     /**
-     * Compute the next scheduled run for each event, using the given time zone and "now".
+     * Compute the next scheduled run for each ENABLED event, using the given time zone and "now".
+     *
+     * Disabled events are ignored.
      *
      * This does NOT schedule anything by itself; it is a helper for your scheduler logic.
      */
@@ -162,6 +199,7 @@ public final class EventManager {
         if (zone == null || now == null) return List.of();
 
         return EVENTS.values().stream()
+                .filter(EventModel::enabled)
                 .map(event -> new ScheduledEvent(
                         event,
                         event.schedule().nextRun(zone, now)
@@ -170,7 +208,7 @@ public final class EventManager {
     }
 
     /**
-     * Find the single earliest next scheduled event (if any), in the given zone.
+     * Find the single earliest next scheduled ENABLED event (if any), in the given zone.
      *
      * Useful if you want a "central tick" that always schedules the next soonest event.
      */

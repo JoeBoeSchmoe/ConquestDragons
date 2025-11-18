@@ -64,6 +64,17 @@ gui:
   timeout-seconds: 60
 
 # ===================================================
+# 🌍 Timezone Settings
+# Controls how schedules and timestamps are interpreted.
+# Use any valid Java ZoneId.
+#
+# Full list of available timezone IDs:
+# https://docs.oracle.com/javase/8/docs/api/java/time/ZoneId.html#of-java.lang.String-
+# ===================================================
+time:
+  timezone: "America/Chicago"
+
+# ===================================================
 # 💾 Storage (Foundation)
 # Basic autosave interval. No storage backend is assumed yet.
 # ===================================================

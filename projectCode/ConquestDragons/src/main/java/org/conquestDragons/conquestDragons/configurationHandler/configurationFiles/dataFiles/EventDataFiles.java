@@ -104,6 +104,13 @@ public final class EventDataFiles {
         boolean enabled = root.getBoolean("enabled", true);
 
         // -------------------------
+        // Keep-inventory flag (optional, default false)
+        // -------------------------
+        // If true, players keep inventory on death during this event.
+        // If false or omitted, normal drop behavior applies.
+        boolean keepInventory = root.getBoolean("keep-inventory", false);
+
+        // -------------------------
         // Dragon IDs
         // -------------------------
         List<String> dragonIds = root.getStringList("dragon-ids");
@@ -235,13 +242,14 @@ public final class EventDataFiles {
                 parseRankingRewards(plugin, id, root);
 
         // -------------------------
-        // Construct model (FULL ctor with completionSpawn + playingAreas)
+        // Construct model (FULL ctor with completionSpawn + playingAreas + keepInventory)
         // -------------------------
         try {
             return new EventModel(
                     id,
                     displayName,
                     enabled,
+                    keepInventory,
                     dragonIds,
                     bossDragonId,
                     dragonCornerA,

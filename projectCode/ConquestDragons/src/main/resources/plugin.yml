@@ -33,32 +33,65 @@ commands:
 # 🔐 Permissions
 # Basic structure to expand later as mechanics grow.
 # ===================================================
+
 permissions:
+
+  # ---------------------------------------------------
+  # USER BASE + HELP
+  # ---------------------------------------------------
   conquestdragons.user.basecommand:
     description: Access to /dragons and its subcommands.
     default: true
 
   conquestdragons.user.help:
-    description: Access to /dragons help menu
+    description: Access to /dragons help menu.
     default: true
 
+  # ---------------------------------------------------
+  # 🐉 USER EVENT PARTICIPATION
+  # ---------------------------------------------------
+
+  conquestdragons.user.join:
+    description: Allows players to join events using /dragons join <eventName>.
+    default: true
+
+  conquestdragons.user.leave:
+    description: Allows players to leave their active dragon event using /dragons leave.
+    default: true
+
+  conquestdragons.user.spectate:
+    description: Allows players to spectate events using /dragons spectate <eventName>.
+    default: true
+
+  conquestdragons.user.spectate.leave:
+    description: Allows players to leave spectate mode using /dragons spectate leave.
+    default: true
+
+  # Wildcard for all user-level features
   conquestdragons.user.*:
-    description: Grants all user dragon command access
+    description: Grants all user dragon command access.
     default: true
     children:
       conquestdragons.user.basecommand: true
       conquestdragons.user.help: true
+      conquestdragons.user.join: true
+      conquestdragons.user.leave: true
+      conquestdragons.user.spectate: true
+      conquestdragons.user.spectate.leave: true
 
+  # ---------------------------------------------------
+  # 👑 ADMIN PERMISSIONS
+  # ---------------------------------------------------
   conquestdragons.admin:
-    description: Base permission for admin features
+    description: Base permission for admin features.
     default: op
 
   conquestdragons.admin.reload:
-    description: Reload plugin config files
+    description: Reload plugin configuration files.
     default: op
 
   conquestdragons.admin.*:
-    description: Grants access to all admin commands
+    description: Grants access to all admin commands.
     default: op
     children:
       conquestdragons.admin: true

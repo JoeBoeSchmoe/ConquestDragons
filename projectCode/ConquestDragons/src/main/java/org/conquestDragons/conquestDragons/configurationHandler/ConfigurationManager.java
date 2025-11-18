@@ -60,7 +60,7 @@ public class ConfigurationManager {
 
             // Data Files
             DragonDataFiles.loadAll();
-            EventDataFiles.loadAll();   
+            EventDataFiles.loadAll();
 
             log.info("✅  Configuration loading complete.");
         } catch (Exception e) {
@@ -90,8 +90,13 @@ public class ConfigurationManager {
         check("cooldowns.gui-action-cooldown-ms");
         check("cooldowns.interaction-cooldown-ms");
 
-        // GUI + Storage
+        // GUI
         check("gui.timeout-seconds");
+
+        // Timezone
+        check("time.timezone");
+
+        // Storage
         check("storage.autosave-seconds");
         check("storage.save-on-shutdown");
     }

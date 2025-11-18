@@ -1,9 +1,12 @@
 package org.conquestDragons.conquestDragons.eventHandler;
 
 import org.bukkit.Bukkit;
+import org.bukkit.Location;
+import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitTask;
 import org.conquestDragons.conquestDragons.ConquestDragons;
+import org.conquestDragons.conquestDragons.configurationHandler.configurationFiles.ConfigFile;
 import org.conquestDragons.conquestDragons.responseHandler.MessageResponseManager;
 import org.conquestDragons.conquestDragons.responseHandler.messageModels.UserMessageModels;
 
@@ -38,10 +41,14 @@ public final class EventSequenceManager {
         if (INSTANCE != null) {
             return INSTANCE;
         }
-        ZoneId zone = ZoneId.systemDefault(); // later, you can make this config-driven
+
+        ZoneId zone = resolveZoneFromConfig();
         INSTANCE = new EventSequenceManager(zone);
         INSTANCE.startTickTask();
-        ConquestDragons.getInstance().getLogger().info("✅  EventSequenceManager started (zone=" + zone + ").");
+
+        ConquestDragons.getInstance().getLogger().info(
+                "✅  EventSequenceManager started (zone=" + zone + ")."
+        );
         return INSTANCE;
     }
 
@@ -72,6 +79,33 @@ public final class EventSequenceManager {
     private EventSequenceManager(ZoneId zoneId) {
         this.plugin = Objects.requireNonNull(ConquestDragons.getInstance(), "plugin");
         this.zoneId = Objects.requireNonNull(zoneId, "zoneId");
+    }
+
+    // ---------------------------------------------------
+    // Config-based timezone resolution
+    // ---------------------------------------------------
+
+    /**
+     * Resolve the timezone configured in config.yml under time.timezone.
+     * Falls back to system default if invalid or missing.
+     */
+    private static ZoneId resolveZoneFromConfig() {
+        ConquestDragons plugin = ConquestDragons.getInstance();
+        FileConfiguration cfg = ConfigFile.getConfig();
+
+        String rawId = cfg.getString("time.timezone", "UTC");
+        try {
+            ZoneId zone = ZoneId.of(rawId);
+            plugin.getLogger().info("⏱️  Using configured timezone: " + rawId);
+            return zone;
+        } catch (Exception ex) {
+            ZoneId fallback = ZoneId.systemDefault();
+            plugin.getLogger().warning(
+                    "⚠️  Invalid time.timezone value '" + rawId + "' in config.yml; " +
+                            "falling back to system default: " + fallback
+            );
+            return fallback;
+        }
     }
 
     // ---------------------------------------------------
@@ -164,6 +198,57 @@ public final class EventSequenceManager {
     }
 
     // ---------------------------------------------------
+    // Public join-window query API
+    // ---------------------------------------------------
+
+    /**
+     * High-level join-window state for a given event.
+     *
+     * UPCOMING  -> join window not yet open for the current scheduled run.
+     * OPEN      -> join window currently open.
+     * CLOSED    -> join window for the current scheduled run has ended.
+     * UNSCHEDULED -> no runtime schedule info for this event (yet).
+     */
+    public enum JoinWindowState {
+        UPCOMING,
+        OPEN,
+        CLOSED,
+        UNSCHEDULED
+    }
+
+    /**
+     * Query the current join-window state for the given event.
+     *
+     * This is used by /dragons join to decide whether players
+     * should be allowed to join now, or receive "not started"/"window closed".
+     */
+    public JoinWindowState queryJoinWindowState(EventModel event) {
+        if (event == null || !event.enabled()) {
+            return JoinWindowState.UNSCHEDULED;
+        }
+
+        String id = event.id();
+        Instant now = Instant.now();
+
+        // Try to reuse existing run; if none, lazily build one so that
+        // commands can still reason about the next scheduled time even
+        // before the first tick executes.
+        ScheduledRun run = runsByEventId.get(id);
+        if (run == null) {
+            run = ScheduledRun.forEvent(event, zoneId, now);
+            runsByEventId.put(id, run);
+        }
+
+        if (now.isBefore(run.startInstant)) {
+            return JoinWindowState.UPCOMING;
+        }
+        if (now.isBefore(run.joinWindowEndInstant)) {
+            return JoinWindowState.OPEN;
+        }
+        return JoinWindowState.CLOSED;
+    }
+
+    // ---------------------------------------------------
     // Hook methods (wired into your message system)
     // ---------------------------------------------------
 
@@ -191,6 +276,9 @@ public final class EventSequenceManager {
      * = total join window length (e.g. "5m", "10m").
      */
     private void onJoinWindowOpened(EventModel event, ScheduledRun run) {
+        // Mark runtime join-window state on the event
+        event.setJoinWindowOpen(true);
+
         Map<String, String> placeholders = new HashMap<>();
 
         // How long the join window stays open
@@ -231,15 +319,36 @@ public final class EventSequenceManager {
      *
      * Uses messages.user.EventStarted to announce that the event
      * has begun (gates closed, combat starting, etc.).
+     *
+     * Here we also:
+     *  - flip joinWindowOpen=false and running=true
+     *  - set currentStageKey=INITIAL
+     *  - teleport all participants to the INITIAL stage's spawn
+     *    (falling back to dragonSpawn if no stage area is defined).
      */
     private void onJoinWindowEnded(EventModel event, ScheduledRun run) {
+        // Close join window + mark event as running in INITIAL stage
+        event.setJoinWindowOpen(false);
+        event.setRunning(true);
+        event.setCurrentStageKey(EventStageKey.INITIAL);
+
+        // Teleport all participants into the INITIAL stage arena
+        Location initialSpawn = resolveInitialStageSpawn(event);
+        for (UUID uuid : event.participantsSnapshot()) {
+            Player p = Bukkit.getPlayer(uuid);
+            if (p != null && p.isOnline()) {
+                p.teleport(initialSpawn);
+            }
+        }
+
         Map<String, String> placeholders = new HashMap<>();
         // Even if {event} isn't used yet in YAML, this is safe and future-proof.
         placeholders.put("event", event.displayName());
 
         broadcastUserMessage(UserMessageModels.EVENT_STARTED, placeholders);
 
-        // Later: actually start the event sequence / LOBBY->INITIAL transition:
+        // Later: actually schedule per-stage timed events / commands here
+        // (e.g. INITIAL -> IN_BELLY -> POST_BELLY -> FINAL)
         // DragonEventRuntimeManager.getInstance().onJoinWindowClosedAndStartEvent(event, run.startInstant);
     }
 
@@ -247,27 +356,40 @@ public final class EventSequenceManager {
     // Helpers
     // ---------------------------------------------------
 
+    /**
+     * Decide where to send players when the INITIAL stage begins:
+     *  - Prefer the INITIAL StageArea's spawn, if configured
+     *  - Otherwise fall back to the global dragonSpawn.
+     */
+    private static Location resolveInitialStageSpawn(EventModel event) {
+        EventModel.StageArea initialArea = event.stageAreaOrNull(EventStageKey.INITIAL);
+        if (initialArea != null) {
+            return initialArea.spawn();
+        }
+        return event.dragonSpawn();
+    }
+
     private static String humanReadable(Duration d) {
         if (d == null || d.isNegative() || d.isZero()) {
             return "0s";
         }
-        long seconds = d.getSeconds();
-        long hours = seconds / 3600;
-        long minutes = (seconds % 3600) / 60;
-        long secs = seconds % 60;
 
-        StringBuilder sb = new StringBuilder();
-        if (hours > 0) {
-            sb.append(hours).append("h ");
+        long seconds = d.getSeconds();
+
+        // Hours, rounded to nearest hour
+        if (seconds >= 3600) {
+            long hours = Math.round(seconds / 3600.0);
+            return hours + "H";
         }
-        if (minutes > 0) {
-            sb.append(minutes).append("m ");
+
+        // Minutes, rounded to nearest minute
+        if (seconds >= 60) {
+            long minutes = Math.round(seconds / 60.0);
+            return minutes + "M";
         }
-        if (secs > 0 && hours == 0) {
-            // Only show seconds if under 1h, to keep chat cleaner
-            sb.append(secs).append("s");
-        }
-        return sb.toString().trim();
+
+        // Under 60 seconds → just show seconds
+        return seconds + "s";
     }
 
     /**
@@ -299,12 +421,12 @@ public final class EventSequenceManager {
         private ScheduledRun(Instant startInstant,
                              Instant joinWindowEndInstant,
                              Duration joinWindowLength,
-                             Duration joinReminderInterval,
+                             Duration joinReminderIntervalRaw,
                              List<Reminder> preStartReminders) {
             this.startInstant = startInstant;
             this.joinWindowEndInstant = joinWindowEndInstant;
             this.joinWindowLength = joinWindowLength;
-            this.joinReminderInterval = joinWindowIntervalSafe(joinReminderInterval);
+            this.joinReminderInterval = joinWindowIntervalSafe(joinReminderIntervalRaw);
             this.preStartReminders = preStartReminders;
         }
 

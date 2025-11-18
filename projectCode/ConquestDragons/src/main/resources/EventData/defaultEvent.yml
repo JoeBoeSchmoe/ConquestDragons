@@ -22,6 +22,12 @@ event:
   # The scheduler / commands should skip running disabled events.
   enabled: true
 
+  # keep-inventory:
+  #   - If true, players KEEP their inventory on death during this event
+  #     (no item drops, no loss).
+  #   - If false or omitted, normal death behavior applies and they drop items.
+  keep-inventory: true
+
   # ---------------------------------------------------
   # DISPLAY NAME (MiniMessage)
   # ---------------------------------------------------
