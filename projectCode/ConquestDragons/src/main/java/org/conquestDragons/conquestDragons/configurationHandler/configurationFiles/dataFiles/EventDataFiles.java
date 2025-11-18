@@ -25,7 +25,7 @@ import java.util.logging.Level;
  * Responsibilities:
  *  - Scan EventData/ for *.yml
  *  - Load each event definition (event: root)
- *  - Resolve dragon-region, dragon-spawn, stage-areas, belly trigger, schedule, stages, rewards, etc.
+ *  - Resolve dragon-region, dragon-spawn, playing-areas, belly trigger, schedule, stages, rewards, etc.
  *  - Push all EventModel instances into EventManager
  *
  * This class is meant to be called from plugin startup / reload.
@@ -164,10 +164,26 @@ public final class EventDataFiles {
         }
 
         // -------------------------
-        // Stage-areas (per-stage EventRegion + spawn)
+        // Optional completion-spawn
         // -------------------------
-        Map<EventStageKey, EventModel.StageArea> stageAreas =
-                parseStageAreas(plugin, id, root, worldName);
+        Location completionSpawn = null;
+        ConfigurationSection completionSec = root.getConfigurationSection("completion-spawn");
+        if (completionSec != null) {
+            String completionWorldName = completionSec.getString("world", worldName);
+            World completionWorld = Bukkit.getWorld(completionWorldName);
+            if (completionWorld == null) {
+                plugin.getLogger().warning("⚠️  Event '" + id + "' completion-spawn references world '" +
+                        completionWorldName + "' which is not loaded. Falling back to dragon-spawn / region center.");
+            } else {
+                completionSpawn = parseLocationWithOrientation(completionWorld, completionSec);
+            }
+        }
+
+        // -------------------------
+        // playing-areas (per-stage EventRegion + spawn)
+        // -------------------------
+        Map<EventStageKey, EventModel.StageArea> playingAreas =
+                parsePlayingAreas(plugin, id, root, worldName);
 
         // -------------------------
         // Belly trigger
@@ -219,7 +235,7 @@ public final class EventDataFiles {
                 parseRankingRewards(plugin, id, root);
 
         // -------------------------
-        // Construct model (FULL ctor)
+        // Construct model (FULL ctor with completionSpawn + playingAreas)
         // -------------------------
         try {
             return new EventModel(
@@ -231,7 +247,8 @@ public final class EventDataFiles {
                     dragonCornerA,
                     dragonCornerB,
                     dragonSpawn,
-                    stageAreas,
+                    completionSpawn,   // may be null → EventModel will fall back to dragonSpawn
+                    playingAreas,
                     bellyTriggerHealthFraction,
                     maxDuration,
                     joinWindowLength,
@@ -271,31 +288,31 @@ public final class EventDataFiles {
     }
 
     // ---------------------------------------------------------------------
-    // Helpers: stage-areas → Map<EventStageKey, StageArea>
+    // Helpers: playing-areas → Map<EventStageKey, StageArea>
     // ---------------------------------------------------------------------
 
-    private static Map<EventStageKey, EventModel.StageArea> parseStageAreas(ConquestDragons plugin,
-                                                                            String eventId,
-                                                                            ConfigurationSection root,
-                                                                            String defaultWorldName) {
-        ConfigurationSection stageAreasRoot = root.getConfigurationSection("stage-areas");
-        if (stageAreasRoot == null) {
+    private static Map<EventStageKey, EventModel.StageArea> parsePlayingAreas(ConquestDragons plugin,
+                                                                              String eventId,
+                                                                              ConfigurationSection root,
+                                                                              String defaultWorldName) {
+        ConfigurationSection playingAreasRoot = root.getConfigurationSection("playing-areas");
+        if (playingAreasRoot == null) {
             return Collections.emptyMap();
         }
 
         Map<EventStageKey, EventModel.StageArea> result = new EnumMap<>(EventStageKey.class);
 
-        for (String keyName : stageAreasRoot.getKeys(false)) {
+        for (String keyName : playingAreasRoot.getKeys(false)) {
             EventStageKey stageKey;
             try {
                 stageKey = EventStageKey.valueOf(keyName.toUpperCase(Locale.ROOT));
             } catch (IllegalArgumentException ex) {
-                plugin.getLogger().warning("⚠️  Event '" + eventId + "' stage-areas has invalid key '" +
-                        keyName + "'. Skipping this stage-area.");
+                plugin.getLogger().warning("⚠️  Event '" + eventId + "' playing-areas has invalid key '" +
+                        keyName + "'. Skipping this playing-area.");
                 continue;
             }
 
-            ConfigurationSection stageAreaSec = stageAreasRoot.getConfigurationSection(keyName);
+            ConfigurationSection stageAreaSec = playingAreasRoot.getConfigurationSection(keyName);
             if (stageAreaSec == null) {
                 continue;
             }
@@ -303,8 +320,8 @@ public final class EventDataFiles {
             ConfigurationSection regionSec = stageAreaSec.getConfigurationSection("region");
             ConfigurationSection spawnSec = stageAreaSec.getConfigurationSection("spawn");
             if (regionSec == null || spawnSec == null) {
-                plugin.getLogger().warning("⚠️  Event '" + eventId + "' stage-areas." + keyName +
-                        " missing 'region' or 'spawn'. Skipping this stage-area.");
+                plugin.getLogger().warning("⚠️  Event '" + eventId + "' playing-areas." + keyName +
+                        " missing 'region' or 'spawn'. Skipping this playing-area.");
                 continue;
             }
 
@@ -312,7 +329,7 @@ public final class EventDataFiles {
             String regionWorldName = regionSec.getString("world", defaultWorldName);
             World regionWorld = Bukkit.getWorld(regionWorldName);
             if (regionWorld == null) {
-                plugin.getLogger().warning("⚠️  Event '" + eventId + "' stage-areas." + keyName +
+                plugin.getLogger().warning("⚠️  Event '" + eventId + "' playing-areas." + keyName +
                         " region references world '" + regionWorldName + "' which is not loaded. Skipping.");
                 continue;
             }
@@ -320,7 +337,7 @@ public final class EventDataFiles {
             ConfigurationSection regionCornerASec = regionSec.getConfigurationSection("corner-a");
             ConfigurationSection regionCornerBSec = regionSec.getConfigurationSection("corner-b");
             if (regionCornerASec == null || regionCornerBSec == null) {
-                plugin.getLogger().warning("⚠️  Event '" + eventId + "' stage-areas." + keyName +
+                plugin.getLogger().warning("⚠️  Event '" + eventId + "' playing-areas." + keyName +
                         " region missing 'corner-a' or 'corner-b'. Skipping.");
                 continue;
             }
@@ -331,8 +348,8 @@ public final class EventDataFiles {
             try {
                 stageRegion = new EventModel.EventRegion(regionCornerA, regionCornerB);
             } catch (IllegalArgumentException ex) {
-                plugin.getLogger().warning("⚠️  Event '" + eventId + "' stage-areas." + keyName +
-                        " has invalid region corners. Skipping this stage-area.");
+                plugin.getLogger().warning("⚠️  Event '" + eventId + "' playing-areas." + keyName +
+                        " has invalid region corners. Skipping this playing-area.");
                 continue;
             }
 
@@ -340,7 +357,7 @@ public final class EventDataFiles {
             String spawnWorldName = spawnSec.getString("world", regionWorldName);
             World spawnWorld = Bukkit.getWorld(spawnWorldName);
             if (spawnWorld == null) {
-                plugin.getLogger().warning("⚠️  Event '" + eventId + "' stage-areas." + keyName +
+                plugin.getLogger().warning("⚠️  Event '" + eventId + "' playing-areas." + keyName +
                         " spawn references world '" + spawnWorldName + "' which is not loaded. Skipping.");
                 continue;
             }
@@ -351,7 +368,7 @@ public final class EventDataFiles {
                 EventModel.StageArea stageArea = new EventModel.StageArea(stageRegion, spawnLoc);
                 result.put(stageKey, stageArea);
             } catch (IllegalArgumentException ex) {
-                plugin.getLogger().warning("⚠️  Event '" + eventId + "' stage-areas." + keyName +
+                plugin.getLogger().warning("⚠️  Event '" + eventId + "' playing-areas." + keyName +
                         " has invalid StageArea (region/spawn mismatch). Skipping.");
             }
         }

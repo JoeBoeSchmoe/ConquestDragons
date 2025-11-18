@@ -34,7 +34,7 @@ event:
     - "defaultDragon"
     - "defaultDragon_variant2"
 
-  boss-dragon-id: "exampleBossDragon"
+  boss-dragon-id: "defaultBossDragon"
 
 
   # ---------------------------------------------------
@@ -68,16 +68,31 @@ event:
     yaw: 0.0
     pitch: 0.0
 
+  # ---------------------------------------------------
+  # COMPLETION / EXIT SPAWN
+  # - This maps to EventModel.completionSpawn
+  # - Used when the event ends or when a player exits spectator mode.
+  # - If omitted, code falls back to dragon-spawn.
+  # ---------------------------------------------------
+  completion-spawn:
+    world: "world"
+    x: 125.5
+    y: 66.0
+    z: 125.5
+    yaw: 0.0
+    pitch: 0.0
+
 
   # ---------------------------------------------------
   # PER-STAGE PLAYER AREAS
   # - This maps to EventModel.playingAreas (Map<EventStageKey, StageArea>)
+  # - YAML key: "playing-areas"
   # - Each entry:
   #     <STAGE-KEY>:
   #       region: (EventRegion)
   #       spawn:  (Location)
   # ---------------------------------------------------
-  stage-areas:
+  playing-areas:
 
     # LOBBY: waiting room (can be same region as arena, or a separate one)
     LOBBY:
@@ -207,13 +222,10 @@ event:
 
     # Optional pre-event countdown reminders (times BEFORE start)
     # Strings are parsed into Duration offsets: "1H", "30M", "15M", "5M", "1M"
-    pre-start-reminders: [ "1H", "30M", "15M", "5M", "1M" ]
-
+    pre-start-reminders: [ "1H", "30M", "15M", "5M", "1M", "30S", "10S", "5S", "4S", "3S", "2S", "1S" ]
 
   # ---------------------------------------------------
   # JOIN WINDOW & REMINDERS
-  # ---------------------------------------------------
-  # Only timing values remain; message will be defined elsewhere.
   # ---------------------------------------------------
   join-window-length-seconds: 300          # 5 minutes
   join-reminder-interval-seconds: 60       # every 1 minute
@@ -240,10 +252,6 @@ event:
 
     # -----------------------------------------------
     # RANK-SPECIFIC REWARDS (top 10)
-    # -----------------------------------------------
-    # Rank = final damage rank (1 = highest damage)
-    # Chance = double percent (0.0 → 100.0)
-    # Commands executed only if random roll succeeds.
     # -----------------------------------------------
     ranking:
 
@@ -308,6 +316,7 @@ event:
         chance: 30.0
         commands:
           - "give {player} minecraft:gold_ingot 16"
+
 
   # ---------------------------------------------------
   # STAGES (LOGIC PHASES, NOT GEOMETRY)

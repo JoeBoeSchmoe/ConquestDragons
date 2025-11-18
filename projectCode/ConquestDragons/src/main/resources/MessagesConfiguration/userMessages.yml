@@ -19,7 +19,7 @@ messages:
           hover: "<gray>Click to view help menu</gray>"
           click: "/dragons help"
           clickType: "SUGGEST_COMMAND"
-      prefix: true
+      prefix: false
       sound: { type: UI_BUTTON_CLICK, volume: 1.0, pitch: 1.0 }
       particles: [ { type: ENCHANTMENT_TABLE, count: 4, offset: [0.2, 0.3, 0.2], speed: 0.01 } ]
       bossbar: { text: "<yellow>Need Help?</yellow>", color: "YELLOW", overlay: "PROGRESS", time: 60, progress: 0.5 }
@@ -44,7 +44,7 @@ messages:
           click: "/dragons help"
           clickType: "SUGGEST_COMMAND"
           permission: "conquestdragons.user.help"
-      prefix: true
+      prefix: false
       sound: { type: UI_BUTTON_CLICK, volume: 1.0, pitch: 1.1 }
       particles: [ { type: ENCHANTMENT_TABLE, count: 5, offset: [0.2, 0.3, 0.2], speed: 0.02 } ]
       effects: [ { type: SPEED, amplifier: 0, duration: 60 } ]
@@ -64,7 +64,7 @@ messages:
       click: ""
       clickType: "NONE"
       components: [ ]
-      prefix: true
+      prefix: false
       sound: { type: BLOCK_NOTE_BLOCK_BELL, volume: 1.0, pitch: 1.2 }
       particles: [ { type: ENCHANTMENT_TABLE, count: 8, offset: [0.3,0.5,0.3], speed: 0.02 }, { type: DRAGON_BREATH, count: 6, offset: [0.4,0.8,0.4], speed: 0.03 } ]
       bossbar: { text: "<dark_purple>🐉 Dragons attacking in <gold>{time}</gold>…</dark_purple>", color: "PURPLE", overlay: "PROGRESS", time: 80, progress: 1.0 }
@@ -84,7 +84,7 @@ messages:
       click: "/dragons join"
       clickType: "RUN_COMMAND"
       components: [ ]
-      prefix: true
+      prefix: false
       sound: { type: ENTITY_ENDER_DRAGON_GROWL, volume: 1.0, pitch: 1.0 }
       particles: [ { type: DRAGON_BREATH, count: 20, offset: [0.5, 0.8, 0.5], speed: 0.02 } ]
       bossbar: { }
@@ -98,20 +98,40 @@ messages:
     EventStartReminder:
       text:
         - "<gold>⏰ The Dragon Event is still open!</gold>"
-        - "<gray>You can still join the fight.</gray>"
+        - "<gray>You can still join the fight — <yellow>{time}</yellow> remaining.</gray>"
         - "<yellow>Use <gold>/dragons join</gold> before the gates close.</yellow>"
       hover: "<gray>Click to autofill /dragons join.</gray>"
       click: "/dragons join"
       clickType: "SUGGEST_COMMAND"
       components: [ ]
-      prefix: true
+      prefix: false
       sound: { type: BLOCK_NOTE_BLOCK_BELL, volume: 1.0, pitch: 1.3 }
       particles: [ { type: ENCHANTMENT_TABLE, count: 8, offset: [0.3, 0.5, 0.3], speed: 0.02 } ]
       bossbar: { }
-      actionbar: { text: "<gray>Last call! Use <yellow>/dragons join</yellow>.</gray>", duration: 80 }
+      actionbar: { text: "<gray>Last call! <yellow>{time}</yellow> left — use <yellow>/dragons join</yellow>.</gray>", duration: 80 }
       title:
         text: "<gold><bold>Dragon Event Reminder</bold></gold>"
-        subtitle: "<gray>Join before the window closes.</gray>"
+        subtitle: "<gray>Join before the window closes — <yellow>{time}</yellow> remaining.</gray>"
+        timings: { fadeIn: 10, stay: 40, fadeOut: 20 }
+
+    # 🟢 EVENT HAS STARTED
+    EventStarted:
+      text:
+        - "<green><bold>✔ The Dragon Event has begun!</bold></green>"
+        - "<gray>The gates have closed — no more players may join.</gray>"
+        - "<yellow>The dragons awaken... prepare for battle!</yellow>"
+      hover: "<gray>The ritual begins now.</gray>"
+      click: ""
+      clickType: "NONE"
+      components: [ ]
+      prefix: false
+      sound: { type: ENTITY_ENDER_DRAGON_GROWL, volume: 1.2, pitch: 1.0 }
+      particles: [ { type: DRAGON_BREATH, count: 15, offset: [0.3, 0.8, 0.3], speed: 0.02 } ]
+      bossbar: { }
+      actionbar: { text: "<green>The Dragon Event is now underway!</green>", duration: 80 }
+      title:
+        text: "<green><bold>Dragon Event Started!</bold></green>"
+        subtitle: "<gray>The dragons have awakened...</gray>"
         timings: { fadeIn: 10, stay: 40, fadeOut: 20 }
 
     # =========================
@@ -129,7 +149,7 @@ messages:
         click: ""
         clickType: "NONE"
         components: [ ]
-        prefix: true
+        prefix: false
         sound: { type: UI_BUTTON_CLICK, volume: 1.0, pitch: 1.0 }
         particles: [ { type: ENCHANTMENT_TABLE, count: 10, offset: [0.3, 0.6, 0.3], speed: 0.02 } ]
         bossbar: { }
@@ -164,7 +184,7 @@ messages:
         click: ""
         clickType: "NONE"
         components: [ ]
-        prefix: true
+        prefix: false
         sound: { type: ENTITY_EXPERIENCE_ORB_PICKUP, volume: 1.0, pitch: 1.2 }
         particles: [ { type: VILLAGER_HAPPY, count: 10, offset: [0.2, 0.4, 0.2], speed: 0.05 } ]
         bossbar: { }
@@ -188,7 +208,7 @@ messages:
         click: ""
         clickType: "NONE"
         components: [ ]
-        prefix: true
+        prefix: false
         sound: { type: ENTITY_ENDER_DRAGON_GROWL, volume: 1.2, pitch: 1.2 }
         particles: [ { type: DRAGON_BREATH, count: 15, offset: [0.3, 0.7, 0.3], speed: 0.02 } ]
         bossbar: { }
@@ -223,7 +243,7 @@ messages:
         click: ""
         clickType: "NONE"
         components: [ ]
-        prefix: true
+        prefix: false
         sound: { type: ENTITY_PLAYER_LEVELUP, volume: 1.0, pitch: 1.2 }
         particles: [ { type: FIREWORK, count: 2, offset: [0.4, 0.8, 0.4], speed: 1.0 } ]
         bossbar: { }
@@ -247,7 +267,7 @@ messages:
         click: ""
         clickType: "NONE"
         components: [ ]
-        prefix: true
+        prefix: false
         sound: { type: ENTITY_ENDER_DRAGON_GROWL, volume: 1.3, pitch: 0.9 }
         particles: [ { type: DRAGON_BREATH, count: 25, offset: [0.4, 1.0, 0.4], speed: 0.04 } ]
         bossbar: { }
@@ -282,7 +302,7 @@ messages:
         click: ""
         clickType: "NONE"
         components: [ ]
-        prefix: true
+        prefix: false
         sound: { type: ENTITY_PLAYER_LEVELUP, volume: 1.0, pitch: 1.3 }
         particles: [ { type: FIREWORK, count: 2, offset: [0.5, 0.9, 0.5], speed: 1.0 } ]
         bossbar: { }
@@ -307,7 +327,7 @@ messages:
         click: ""
         clickType: "NONE"
         components: [ ]
-        prefix: true
+        prefix: false
         sound: { type: ENTITY_ENDER_DRAGON_GROWL, volume: 1.1, pitch: 1.0 }
         particles: [ { type: DRAGON_BREATH, count: 12, offset: [0.3, 0.7, 0.3], speed: 0.02 } ]
         bossbar: { }
@@ -342,7 +362,7 @@ messages:
         click: ""
         clickType: "NONE"
         components: [ ]
-        prefix: true
+        prefix: false
         sound: { type: ENTITY_PLAYER_LEVELUP, volume: 1.0, pitch: 1.4 }
         particles: [ { type: FIREWORK, count: 3, offset: [0.5, 0.9, 0.5], speed: 1.2 } ]
         bossbar: { }
@@ -366,7 +386,7 @@ messages:
         click: ""
         clickType: "NONE"
         components: [ ]
-        prefix: true
+        prefix: false
         sound: { type: ENTITY_ENDER_DRAGON_GROWL, volume: 1.5, pitch: 0.8 }
         particles: [ { type: ENCHANTMENT_TABLE, count: 20, offset: [0.4,1.0,0.4], speed: 0.03 } ]
         bossbar: { }
@@ -401,7 +421,7 @@ messages:
         click: ""
         clickType: "NONE"
         components: [ ]
-        prefix: true
+        prefix: false
         sound: { type: ENTITY_ENDER_DRAGON_DEATH, volume: 1.0, pitch: 1.0 }
         particles: [ { type: FIREWORK, count: 5, offset: [0.5,1.0,0.5], speed: 1.2 } ]
         bossbar: { }

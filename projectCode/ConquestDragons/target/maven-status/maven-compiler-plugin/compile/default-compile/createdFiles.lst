@@ -1,6 +1,7 @@
 org\conquestDragons\conquestDragons\responseHandler\effectHandler\ActionBarResponseManager$1.class
 org\conquestDragons\conquestDragons\eventHandler\EventModel$RepeatType.class
 org\conquestDragons\conquestDragons\responseHandler\effectHandler\ParticleResponseManager.class
+org\conquestDragons\conquestDragons\eventHandler\EventSequenceManager$ScheduledRun.class
 org\conquestDragons\conquestDragons\eventHandler\EventModel$EventSchedule.class
 org\conquestDragons\conquestDragons\responseHandler\messageModels\GenericMessageModels.class
 org\conquestDragons\conquestDragons\eventHandler\EventModel.class
@@ -61,5 +62,6 @@ org\conquestDragons\conquestDragons\ConquestDragons.class
 org\conquestDragons\conquestDragons\dragonHandler\DragonDifficultyModel.class
 org\conquestDragons\conquestDragons\eventHandler\EventManager.class
 org\conquestDragons\conquestDragons\eventHandler\EventModel$EventRegion.class
+org\conquestDragons\conquestDragons\eventHandler\EventSequenceManager$ScheduledRun$Reminder.class
 org\conquestDragons\conquestDragons\eventHandler\EventManager$ScheduledEvent.class
 org\conquestDragons\conquestDragons\configurationHandler\configurationFiles\ConfigFile.class

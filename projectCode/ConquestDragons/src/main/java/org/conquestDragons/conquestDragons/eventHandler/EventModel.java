@@ -166,7 +166,7 @@ public final class EventModel {
     // ---------------------------------------------------------------------
 
     /**
-     * Constructor WITHOUT explicit dragonSpawn / completionSpawn / stageAreas / rewards.
+     * Convenience constructor WITHOUT explicit dragonSpawn / completionSpawn / stageAreas / rewards.
      * dragonSpawn will default to the center of the dragonRegion.
      *
      * `enabled` is explicit so the loader can wire from YAML.
@@ -207,7 +207,52 @@ public final class EventModel {
     }
 
     /**
-     * Full constructor including explicit dragonSpawn + completionSpawn +
+     * ORIGINAL full constructor signature (backwards compatible).
+     *
+     * NOTE: This delegates to the new constructor and treats completionSpawn as null
+     * (which means "fall back to dragonSpawn").
+     */
+    public EventModel(String id,
+                      String displayName,
+                      boolean enabled,
+                      List<String> dragonIds,
+                      String bossDragonId,
+                      Location dragonCornerA,
+                      Location dragonCornerB,
+                      Location dragonSpawn,
+                      Map<EventStageKey, StageArea> playingAreas,
+                      double bellyTriggerHealthFraction,
+                      Duration maxDuration,
+                      Duration joinWindowLength,
+                      Duration joinReminderInterval,
+                      EventSchedule schedule,
+                      List<EventStageModel> stages,
+                      List<RewardSpec> completionRewards,
+                      List<RankingRewardSpec> rankingRewards) {
+        this(
+                id,
+                displayName,
+                enabled,
+                dragonIds,
+                bossDragonId,
+                dragonCornerA,
+                dragonCornerB,
+                dragonSpawn,
+                /* completionSpawn */ null,
+                playingAreas,
+                bellyTriggerHealthFraction,
+                maxDuration,
+                joinWindowLength,
+                joinReminderInterval,
+                schedule,
+                stages,
+                completionRewards,
+                rankingRewards
+        );
+    }
+
+    /**
+     * NEW full constructor including explicit dragonSpawn + completionSpawn +
      * per-stage areas + rewards.
      */
     public EventModel(String id,
@@ -381,9 +426,7 @@ public final class EventModel {
         return completionSpawn.clone();
     }
 
-    /**
-     * Unmodifiable snapshot of per-stage player areas.
-     */
+    /** Unmodifiable snapshot of per-stage player areas. */
     public Map<EventStageKey, StageArea> stageAreas() {
         return playingAreas;
     }
@@ -937,14 +980,6 @@ public final class EventModel {
     // EventRegion value object
     // ---------------------------------------------------------------------
 
-    /**
-     * Axis-aligned 3D box defined by two corners in a single world.
-     *
-     * Used to clamp dragon AI and to quickly check if an entity
-     * is inside the event space.
-     *
-     * Both the global dragonRegion and per-stage playingAreas use this.
-     */
     public static final class EventRegion {
 
         private final String worldName;
@@ -1024,13 +1059,6 @@ public final class EventModel {
     // StageArea value object (per-stage player region + spawn)
     // ---------------------------------------------------------------------
 
-    /**
-     * Defines the geometric context for a single stage for PLAYERS:
-     *  - region: bounds for that stage (players should stay inside)
-     *  - spawn : preferred spawn/teleport location within that region
-     *
-     * Note: region is an EventRegion, exactly like dragonRegion.
-     */
     public static final class StageArea {
 
         private final EventRegion region;
@@ -1069,20 +1097,6 @@ public final class EventModel {
     // Reward value objects
     // ---------------------------------------------------------------------
 
-    /**
-     * Global reward definition:
-     *  - chancePercent: 0.0–100.0 (per participant roll)
-     *  - commands: one or more commands to run if the roll succeeds
-     *
-     * Typically used after a successful event, iterating all participants.
-     *
-     * YAML:
-     *   rewards:
-     *     completion:
-     *       - chance: 100.0
-     *         commands:
-     *           - "give {player} minecraft:emerald 3"
-     */
     public static final class RewardSpec {
 
         private final double chancePercent;
@@ -1100,12 +1114,10 @@ public final class EventModel {
             this.commands = cmds;
         }
 
-        /** Chance in percent (0.0–100.0) as configured in YAML. */
         public double chancePercent() {
             return chancePercent;
         }
 
-        /** Convenience: normalized 0.0–1.0 chance for internal RNG use. */
         public double chanceNormalized() {
             return chancePercent / 100.0;
         }
@@ -1123,22 +1135,6 @@ public final class EventModel {
         }
     }
 
-    /**
-     * Rank-based reward:
-     *  - rank: 1-based final damage rank (1 = highest damage)
-     *  - chancePercent: 0.0–100.0 chance that this reward pays out
-     *  - commands: commands to run if this reward rolls successfully
-     *
-     * YAML:
-     *   rewards:
-     *     ranking:
-     *       - rank: 1
-     *         chance: 100.0
-     *         commands: [...]
-     *       - rank: 2
-     *         chance: 80.0
-     *         commands: [...]
-     */
     public static final class RankingRewardSpec {
 
         private final int rank;
@@ -1166,17 +1162,14 @@ public final class EventModel {
             this.commands = cmds;
         }
 
-        /** 1-based final damage rank this reward applies to. */
         public int rank() {
             return rank;
         }
 
-        /** Chance in percent (0.0–100.0) as configured in YAML. */
         public double chancePercent() {
             return chancePercent;
         }
 
-        /** Normalized 0.0–1.0 chance for RNG use. */
         public double chanceNormalized() {
             return chancePercent / 100.0;
         }
@@ -1185,7 +1178,6 @@ public final class EventModel {
             return commands;
         }
 
-        /** True if this reward applies to the given 1-based rank. */
         public boolean appliesToRank(int rank) {
             return this.rank == rank;
         }
@@ -1210,24 +1202,6 @@ public final class EventModel {
         MONTHLY
     }
 
-    /**
-     * Repeating schedule definition:
-     *
-     * schedule:
-     *   repeat: DAILY | WEEKLY | MONTHLY
-     *   time:
-     *     hour: 19
-     *     minute: 30
-     *     second: 0
-     *   day-of-week: FRIDAY      # only for WEEKLY
-     *   day-of-month: 1          # only for MONTHLY
-     *   pre-start-reminders:     # optional; times BEFORE start
-     *     - "1H"
-     *     - "30M"
-     *     - "15M"
-     *     - "5M"
-     *     - "1M"
-     */
     public static final class EventSchedule {
 
         private final RepeatType repeatType;
@@ -1265,21 +1239,10 @@ public final class EventModel {
             return dayOfMonth;
         }
 
-        /**
-         * Offsets BEFORE the scheduled start time when you should send
-         * "Dragons attacking in {time}" style buildup messages.
-         *
-         * Values are positive Durations; actual reminder instants are:
-         *   nextRunInstant.minus(offset)
-         */
         public List<Duration> preStartReminderOffsets() {
             return preStartReminderOffsets;
         }
 
-        /**
-         * Convenience: compute the next run Instant given a timezone and "now".
-         * (You can call this from your scheduler logic.)
-         */
         public Instant nextRun(ZoneId zone, Instant nowInstant) {
             Objects.requireNonNull(zone, "zone");
             Objects.requireNonNull(nowInstant, "nowInstant");

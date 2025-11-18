@@ -6,6 +6,8 @@ import org.bukkit.event.Listener;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.conquestDragons.conquestDragons.commandHandler.CommandManager;
 import org.conquestDragons.conquestDragons.configurationHandler.ConfigurationManager;
+import org.conquestDragons.conquestDragons.configurationHandler.configurationFiles.dataFiles.EventDataFiles;
+import org.conquestDragons.conquestDragons.eventHandler.EventSequenceManager;
 
 import java.util.*;
 import java.util.logging.Level;
@@ -35,10 +37,15 @@ public final class ConquestDragons extends JavaPlugin {
     public void onEnable() {
         getLogger().info("🔧  Enabling ConquestDragons...");
 
+        // ---------------------------------------------------
+        // Config / data
+        // ---------------------------------------------------
         configurationManager = new ConfigurationManager();
-        configurationManager.initialize(); // load configs
+        configurationManager.initialize(); // load base configs (config.yml, etc.
 
+        // ---------------------------------------------------
         // Commands & listeners
+        // ---------------------------------------------------
         setupCommands();
         registerListeners(
                 // new PlayerJoinListener()
@@ -46,12 +53,21 @@ public final class ConquestDragons extends JavaPlugin {
                 // new RegionGuardListener()
         );
 
+        // ---------------------------------------------------
+        // Runtime managers
+        // ---------------------------------------------------
+        EventSequenceManager.start();
+
         getLogger().info("✅  ConquestDragons fully loaded.");
     }
 
     @Override
     public void onDisable() {
         getLogger().info("📦  Saving plugin state...");
+
+        // Stop scheduled event sequences cleanly
+        EventSequenceManager.stop();
+
         getLogger().info("🔻  ConquestDragons has been disabled.");
     }
 
@@ -61,7 +77,12 @@ public final class ConquestDragons extends JavaPlugin {
     public void reload() {
         getLogger().info("🔄  Reloading ConquestDragons...");
 
+        // Base configs
         configurationManager.initialize();
+
+        // Reset event sequencing runtime to match new schedules/config
+        EventSequenceManager.stop();
+        EventSequenceManager.start();
 
         // Keep command binding intact, but re-sync aliases from config
         syncCommandAliases();
@@ -82,7 +103,6 @@ public final class ConquestDragons extends JavaPlugin {
         }
 
         // Choose the first declared command name as our primary (typical plugins declare only one)
-        // If you declare more than one, you can pick a specific one via config if you prefer.
         primaryCommandName = declared.keySet().iterator().next();
 
         PluginCommand pluginCommand = getCommand(primaryCommandName);
@@ -131,17 +151,15 @@ public final class ConquestDragons extends JavaPlugin {
         Map<String, Map<String, Object>> declared = getDescription().getCommands();
         Map<String, Object> meta = declared.get(primaryCommandName);
         @SuppressWarnings("unchecked")
-        List<String> ymlAliases = meta != null ? (List<String>) meta.getOrDefault("aliases", Collections.emptyList()) : Collections.emptyList();
+        List<String> ymlAliases = meta != null
+                ? (List<String>) meta.getOrDefault("aliases", Collections.emptyList())
+                : Collections.emptyList();
 
-        // Just informational: show both sets so admins understand where to change what
         getLogger().log(Level.INFO, () ->
                 "📝  Command sync → primary: /" + primaryCommandName +
                         ", yml-aliases: " + ymlAliases +
                         ", cfg-aliases: " + aliases
         );
-
-        // If config contains aliases that aren't in plugin.yml, that's fine — we set them here.
-        // If admin changes the primary command name, they MUST edit plugin.yml accordingly.
     }
 
     private void registerListeners(Listener... listeners) {

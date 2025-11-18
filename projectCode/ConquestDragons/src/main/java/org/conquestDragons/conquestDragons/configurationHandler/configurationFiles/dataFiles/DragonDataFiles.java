@@ -5,18 +5,9 @@ import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.conquestDragons.conquestDragons.ConquestDragons;
 import org.conquestDragons.conquestDragons.configurationHandler.configurationFiles.defaultValueFiles.DefaultDifficultyValuesFile;
-import org.conquestDragons.conquestDragons.dragonHandler.DragonDifficultyModel;
-import org.conquestDragons.conquestDragons.dragonHandler.DragonManager;
-import org.conquestDragons.conquestDragons.dragonHandler.DragonModel;
-import org.conquestDragons.conquestDragons.dragonHandler.keyHandler.DragonAIKey;
-import org.conquestDragons.conquestDragons.dragonHandler.keyHandler.DragonDifficultyKey;
-import org.conquestDragons.conquestDragons.dragonHandler.keyHandler.DragonGlowColorHealthKey;
-import org.conquestDragons.conquestDragons.dragonHandler.keyHandler.DragonSpeedKey;
-import org.conquestDragons.conquestDragons.dragonHandler.keyHandler.DragonAttackSpeedKey;
-import org.conquestDragons.conquestDragons.dragonHandler.keyHandler.DragonScaleStrength;
-import org.conquestDragons.conquestDragons.dragonHandler.keyHandler.DragonBarrierStrengthKey;
-import org.conquestDragons.conquestDragons.dragonHandler.keyHandler.DragonSummonSpeedKey;
-import org.conquestDragons.conquestDragons.dragonHandler.keyHandler.DragonSummonStrengthKey;
+import org.conquestDragons.conquestDragons.dragonHandler.*;
+import org.conquestDragons.conquestDragons.dragonHandler.keyHandler.*;
+import org.conquestDragons.conquestDragons.dragonHandler.keyHandler.difficultyKeys.*;
 
 import java.io.File;
 import java.util.*;
@@ -38,9 +29,7 @@ public final class DragonDataFiles {
 
     private static final String DATA_DIR = "DragonData";
 
-    private DragonDataFiles() {
-        // utility
-    }
+    private DragonDataFiles() { }
 
     // ---------------------------------------------------------------------
     // Public API
@@ -261,7 +250,7 @@ public final class DragonDataFiles {
     }
 
     // ---------------------------------------------------------------------
-    // Difficulty field parsing helpers
+    // Difficulty field parsing helpers (reuse style from DefaultDifficultyValuesFile)
     // ---------------------------------------------------------------------
 
     private static DragonSpeedKey parseSpeedKey(ConquestDragons plugin,
@@ -395,7 +384,7 @@ public final class DragonDataFiles {
     }
 
     // ---------------------------------------------------------------------
-    // Helpers: ensure default files on disk
+    // Helpers: ensure default file on disk
     // ---------------------------------------------------------------------
 
     private static void ensureDefaultDragonOnDisk(ConquestDragons plugin, File dir) {

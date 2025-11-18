@@ -28,6 +28,7 @@ public enum UserMessageModels {
 
     EVENT_START("messages.user.EventStart"),
     EVENT_START_REMINDER("messages.user.EventStartReminder"),
+    EVENT_STARTED("user.EventStarted"),
 
     // =====================================================
     // 🏟 LOBBY STAGE (start → timed → end)
