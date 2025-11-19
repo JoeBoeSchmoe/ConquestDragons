@@ -3,10 +3,14 @@ package org.conquestDragons.conquestDragons.eventHandler;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.entity.EnderDragon;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitTask;
 import org.conquestDragons.conquestDragons.ConquestDragons;
 import org.conquestDragons.conquestDragons.configurationHandler.configurationFiles.ConfigFile;
+import org.conquestDragons.conquestDragons.dragonHandler.DragonBossbarManager;
+import org.conquestDragons.conquestDragons.dragonHandler.DragonManager;
+import org.conquestDragons.conquestDragons.dragonHandler.DragonModel;
 import org.conquestDragons.conquestDragons.responseHandler.MessageResponseManager;
 import org.conquestDragons.conquestDragons.responseHandler.messageModels.UserMessageModels;
 
@@ -27,6 +31,9 @@ import java.util.logging.Level;
  *  - Starts/ends logical stages (LOBBY, INITIAL, etc.).
  *  - Executes stage start/timed/end commands.
  *  - Handles per-stage repeat messages (looping while stage is active).
+ *  - Drives INITIAL stage dragon spawns using DragonManager.getBuilder().
+ *  - Coordinates transition into IN_BELLY stage when dragons hit belly health threshold.
+ *  - Drives IN_BELLY duration and transitions players to POST_BELLY.
  */
 public final class EventSequenceManager {
 
@@ -51,6 +58,9 @@ public final class EventSequenceManager {
         ZoneId zone = resolveZoneFromConfig();
         INSTANCE = new EventSequenceManager(zone);
         INSTANCE.startTickTask();
+
+        // Start DragonBossbarManager (tracks dragons + health)
+        DragonBossbarManager.start(ConquestDragons.getInstance());
 
         ConquestDragons.getInstance().getLogger().info(
                 "✅  EventSequenceManager started (zone=" + zone + ")."
@@ -202,7 +212,7 @@ public final class EventSequenceManager {
             onJoinWindowEnded(event, run);
         }
 
-        // 5) Per-stage timed commands + repeat messages
+        // 5) Per-stage timed commands + repeat messages + INITIAL dragon spawns + belly timing
         tickStages(event, run, now);
     }
 
@@ -238,6 +248,186 @@ public final class EventSequenceManager {
             return JoinWindowState.OPEN;
         }
         return JoinWindowState.CLOSED;
+    }
+
+    // ---------------------------------------------------
+    // Belly trigger callback (from DragonBossbarManager)
+    // ---------------------------------------------------
+
+    /**
+     * Called by DragonBossbarManager when a dragon for this event crosses the
+     * belly trigger health fraction.
+     *
+     * Responsibilities:
+     *  - Ensure INITIAL stage is running for this event.
+     *  - On first trigger, transition to IN_BELLY stage.
+     *  - Compute per-dragon player quota based on active dragons.
+     *  - Select players not already in belly, teleport them to IN_BELLY spawn.
+     *  - Record which players were eaten by which dragon for premature-free logic.
+     */
+    public void onDragonBellyTrigger(EventModel event,
+                                     EnderDragon dragon,
+                                     double healthFraction) {
+        if (event == null || dragon == null) {
+            return;
+        }
+
+        ScheduledRun run = runsByEventId.get(event.id());
+        if (run == null) {
+            return;
+        }
+
+        // Must be in INITIAL stage to do belly transitions
+        ScheduledRun.StageRuntime initialRt = run.getStageRuntime(EventStageKey.INITIAL);
+        if (initialRt == null || !initialRt.started || initialRt.ended) {
+            return;
+        }
+
+        // First time any dragon triggers belly: start IN_BELLY stage.
+        if (!run.inBellyStageStarted) {
+            run.inBellyStageStarted = true;
+
+            // End INITIAL stage commands + messages
+            endStage(event, run, EventStageKey.INITIAL);
+
+            // Switch logical current stage for this event
+            event.setCurrentStageKey(EventStageKey.IN_BELLY);
+
+            // Start IN_BELLY stage commands/timers + start message
+            startStage(event, run, EventStageKey.IN_BELLY, Instant.now());
+
+            plugin.getLogger().info("[ConquestDragons] Event '" + event.id()
+                    + "' entering IN_BELLY stage due to dragon " + dragon.getUniqueId()
+                    + " (healthFraction=" + healthFraction + ")");
+        }
+
+        // Now compute how many players this dragon gets to "eat".
+        Collection<UUID> participants = event.participantsSnapshot();
+        if (participants == null || participants.isEmpty()) {
+            return;
+        }
+
+        int totalParticipants = participants.size();
+
+        // Ask bossbar manager how many dragons are currently alive for this event.
+        DragonBossbarManager bossMgr = DragonBossbarManager.getInstance();
+        int activeDragonCount = 1;
+        if (bossMgr != null) {
+            activeDragonCount = bossMgr.countActiveDragonsForEvent(event);
+        }
+        if (activeDragonCount <= 0) {
+            activeDragonCount = 1; // safety
+        }
+
+        // Example: 2 dragons, 20 players → ceil(20/2) = 10 per dragon.
+        int playersPerDragon = (int) Math.ceil(totalParticipants / (double) activeDragonCount);
+        if (playersPerDragon <= 0) {
+            playersPerDragon = 1;
+        }
+
+        // Build list of candidates: participants not already teleported into belly.
+        List<UUID> candidates = new ArrayList<>();
+        for (UUID uuid : participants) {
+            if (!run.inBellyParticipants.contains(uuid)) {
+                candidates.add(uuid);
+            }
+        }
+        if (candidates.isEmpty()) {
+            return; // everyone already in belly
+        }
+
+        // Shuffle for fairness/randomness
+        Collections.shuffle(candidates);
+
+        int toTake = Math.min(playersPerDragon, candidates.size());
+        Location bellySpawn = resolveInBellyStageSpawn(event);
+        if (bellySpawn == null) {
+            plugin.getLogger().warning("[ConquestDragons] No IN_BELLY spawn configured for event '"
+                    + event.id() + "'. Belly teleport skipped.");
+            return;
+        }
+
+        // Per-dragon bucket for eaten players
+        UUID dragonId = dragon.getUniqueId();
+        Set<UUID> eatenByDragon = run.bellyPlayersByDragon.computeIfAbsent(
+                dragonId,
+                k -> ConcurrentHashMap.newKeySet()
+        );
+
+        for (int i = 0; i < toTake; i++) {
+            UUID uuid = candidates.get(i);
+            run.inBellyParticipants.add(uuid);
+            eatenByDragon.add(uuid);
+            Player p = Bukkit.getPlayer(uuid);
+            if (p != null && p.isOnline()) {
+                p.teleport(bellySpawn);
+            }
+        }
+
+        plugin.getLogger().info("[ConquestDragons] Dragon " + dragon.getUniqueId()
+                + " pulled " + toTake + " players into IN_BELLY for event '" + event.id()
+                + "' (playersPerDragon=" + playersPerDragon
+                + ", activeDragons=" + activeDragonCount + ")");
+    }
+
+    // ---------------------------------------------------
+    // Dragon killed callback (from DragonBossbarManager)
+    // ---------------------------------------------------
+
+    /**
+     * Called when an event dragon dies.
+     *
+     * If we're still in the IN_BELLY stage and this dragon had eaten players,
+     * we prematurely free those players:
+     *  - remove them from inBellyParticipants
+     *  - teleport them to POST_BELLY spawn
+     *
+     * This does NOT advance the global stage timing; it's per-player "escape".
+     */
+    public void onDragonKilled(EventModel event, EnderDragon dragon) {
+        if (event == null || dragon == null) {
+            return;
+        }
+
+        ScheduledRun run = runsByEventId.get(event.id());
+        if (run == null) {
+            return;
+        }
+
+        // We only care if IN_BELLY stage exists and is currently running.
+        ScheduledRun.StageRuntime bellyRt = run.getStageRuntime(EventStageKey.IN_BELLY);
+        if (bellyRt == null || !bellyRt.started || bellyRt.ended) {
+            return;
+        }
+
+        UUID dragonId = dragon.getUniqueId();
+        Set<UUID> eaten = run.bellyPlayersByDragon.remove(dragonId);
+        if (eaten == null || eaten.isEmpty()) {
+            return; // this dragon never ate anyone
+        }
+
+        Location postBellySpawn = resolvePostBellyStageSpawn(event);
+        if (postBellySpawn == null) {
+            plugin.getLogger().warning("[ConquestDragons] No POST_BELLY spawn configured for event '"
+                    + event.id() + "'. Cannot prematurely free belly players.");
+            return;
+        }
+
+        int moved = 0;
+        for (UUID uuid : eaten) {
+            // Mark them as no longer in belly so the global timeout doesn't double-move them
+            run.inBellyParticipants.remove(uuid);
+
+            Player p = Bukkit.getPlayer(uuid);
+            if (p != null && p.isOnline()) {
+                p.teleport(postBellySpawn);
+                moved++;
+            }
+        }
+
+        plugin.getLogger().info("[ConquestDragons] Dragon " + dragon.getUniqueId()
+                + " was killed early; freed " + moved
+                + " belly player(s) into POST_BELLY spawn for event '" + event.id() + "'.");
     }
 
     // ---------------------------------------------------
@@ -285,7 +475,7 @@ public final class EventSequenceManager {
             remaining = Duration.ZERO;
         }
 
-        // 🔧 Clamp small positive durations to 1 minute so we don't show "57s"
+        // Clamp tiny positives to 1 minute for nicer UX
         if (remaining.compareTo(Duration.ZERO) > 0
                 && remaining.compareTo(Duration.ofMinutes(1)) < 0) {
             remaining = Duration.ofMinutes(1);
@@ -311,14 +501,14 @@ public final class EventSequenceManager {
         event.setRunning(true);
         event.setCurrentStageKey(EventStageKey.INITIAL);
 
-        // End the LOBBY stage (end-commands)
+        // End the LOBBY stage (end-commands + end message)
         endStage(event, run, EventStageKey.LOBBY);
 
         // Teleport all participants into the INITIAL stage arena
         Location initialSpawn = resolveInitialStageSpawn(event);
         for (UUID uuid : event.participantsSnapshot()) {
             Player p = Bukkit.getPlayer(uuid);
-            if (p != null && p.isOnline()) {
+            if (p != null && p.isOnline() && initialSpawn != null) {
                 p.teleport(initialSpawn);
             }
         }
@@ -340,6 +530,7 @@ public final class EventSequenceManager {
      * Start a logical stage for this run:
      * - build StageRuntime (timed commands + repeat message state)
      * - immediately run its start-commands
+     * - send stage START message to participants
      */
     private void startStage(EventModel event,
                             ScheduledRun run,
@@ -364,13 +555,23 @@ public final class EventSequenceManager {
                 + " (timedCommands=" + runtime.timedCommands.size()
                 + ", hasRepeatMessage=" + (runtime.repeatMessage != null) + ")");
 
+        // Stage START console commands
         executeCommands(runtime.model.startCommands());
+
+        // Stage START user message
+        sendStageStartMessage(event, key);
+
+        // INITIAL stage: prepare dragon spawn scheduling
+        if (key == EventStageKey.INITIAL) {
+            run.setupInitialDragonSpawns(event, startInstant);
+        }
     }
 
     /**
      * End a logical stage for this run:
      * - mark ended
      * - run its end-commands
+     * - send stage END message to participants
      */
     private void endStage(EventModel event,
                           ScheduledRun run,
@@ -386,13 +587,19 @@ public final class EventSequenceManager {
         plugin.getLogger().info("[ConquestDragons] Ending stage " + key
                 + " for event " + event.id());
 
+        // Stage END console commands
         executeCommands(runtime.model.endCommands());
+
+        // Stage END user message
+        sendStageEndMessage(event, key);
     }
 
     /**
      * Per-tick stage pipeline:
      * - fire due timed-commands (one-shot)
      * - fire repeat stage messages on their interval (participants only)
+     * - drive INITIAL dragon spawns
+     * - enforce IN_BELLY duration and transition remaining belly players to POST_BELLY
      */
     private void tickStages(EventModel event, ScheduledRun run, Instant now) {
         for (ScheduledRun.StageRuntime runtime : run.allStageRuntimes()) {
@@ -419,18 +626,80 @@ public final class EventSequenceManager {
                 plugin.getLogger().info("[ConquestDragons] Firing repeat stage message for stage "
                         + runtime.stageKey + " (event=" + event.id() + ")");
 
-                sendStageTimedMessage(event, runtime.stageKey); // still uses your existing message models
+                sendStageTimedMessage(event, runtime.stageKey);
 
-                // Schedule next fire based on intervalTicks
                 long intervalTicks = rm.intervalTicks;
                 if (intervalTicks > 0L) {
                     rm.nextFireInstant = rm.nextFireInstant.plusMillis(intervalTicks * 50L);
                 } else {
-                    // Safety: if somehow intervalTicks <= 0, disable further fires
                     rm.nextFireInstant = null;
                 }
             }
         }
+
+        // 3) INITIAL stage: spawn dragons one at a time with configured interval
+        run.tickInitialDragonSpawns(event, now);
+
+        // 4) IN_BELLY duration: once elapsed, move remaining belly players to POST_BELLY
+        tickInBellyDuration(event, run, now);
+    }
+
+    /**
+     * Handle the configured IN_BELLY duration for remaining belly players.
+     *
+     * Once the IN_BELLY stage has run for event.inBellyDuration(), we:
+     *  - end the IN_BELLY stage
+     *  - move all still-tracked in-belly participants to the POST_BELLY spawn
+     *  - switch currentStageKey to POST_BELLY
+     *  - start the POST_BELLY stage (start commands + messages)
+     */
+    private void tickInBellyDuration(EventModel event, ScheduledRun run, Instant now) {
+        // If event has no configured belly duration, do nothing.
+        Duration bellyDuration = event.inBellyDuration();
+        if (bellyDuration == null || bellyDuration.isZero() || bellyDuration.isNegative()) {
+            return;
+        }
+
+        // We only care if IN_BELLY stage exists and is currently running.
+        ScheduledRun.StageRuntime bellyRt = run.getStageRuntime(EventStageKey.IN_BELLY);
+        if (bellyRt == null || !bellyRt.started || bellyRt.ended) {
+            return;
+        }
+
+        Instant bellyEndInstant = bellyRt.startInstant.plus(bellyDuration);
+        if (now.isBefore(bellyEndInstant)) {
+            return; // still inside belly window
+        }
+
+        // Past the IN_BELLY duration → time to move remaining belly players into POST_BELLY.
+        Location postBellySpawn = resolvePostBellyStageSpawn(event);
+        if (postBellySpawn == null) {
+            plugin.getLogger().warning("[ConquestDragons] No POST_BELLY spawn configured for event '"
+                    + event.id() + "'. Cannot move players out of belly.");
+            return;
+        }
+
+        // End IN_BELLY stage (commands + messages).
+        endStage(event, run, EventStageKey.IN_BELLY);
+
+        // Teleport all players we still consider "in belly".
+        int moved = 0;
+        for (UUID uuid : new ArrayList<>(run.inBellyParticipants)) {
+            Player p = Bukkit.getPlayer(uuid);
+            if (p != null && p.isOnline()) {
+                p.teleport(postBellySpawn);
+                moved++;
+            }
+        }
+        run.inBellyParticipants.clear();
+        run.bellyPlayersByDragon.clear();
+
+        // Switch logical stage and start POST_BELLY (once).
+        event.setCurrentStageKey(EventStageKey.POST_BELLY);
+        startStage(event, run, EventStageKey.POST_BELLY, now);
+
+        plugin.getLogger().info("[ConquestDragons] IN_BELLY duration ended for event '"
+                + event.id() + "'. Moved " + moved + " player(s) into POST_BELLY.");
     }
 
     // ---------------------------------------------------
@@ -446,6 +715,32 @@ public final class EventSequenceManager {
         EventModel.StageArea initialArea = event.stageAreaOrNull(EventStageKey.INITIAL);
         if (initialArea != null) {
             return initialArea.spawn();
+        }
+        return event.dragonSpawn();
+    }
+
+    /**
+     * Decide where to send players when they are pulled into IN_BELLY:
+     * - Prefer the IN_BELLY StageArea's spawn, if configured
+     * - Otherwise fall back to the global dragonSpawn.
+     */
+    private static Location resolveInBellyStageSpawn(EventModel event) {
+        EventModel.StageArea bellyArea = event.stageAreaOrNull(EventStageKey.IN_BELLY);
+        if (bellyArea != null) {
+            return bellyArea.spawn();
+        }
+        return event.dragonSpawn();
+    }
+
+    /**
+     * Decide where to send players when they leave IN_BELLY and enter POST_BELLY:
+     * - Prefer the POST_BELLY StageArea's spawn, if configured
+     * - Otherwise fall back to the global dragonSpawn.
+     */
+    private static Location resolvePostBellyStageSpawn(EventModel event) {
+        EventModel.StageArea postBellyArea = event.stageAreaOrNull(EventStageKey.POST_BELLY);
+        if (postBellyArea != null) {
+            return postBellyArea.spawn();
         }
         return event.dragonSpawn();
     }
@@ -501,16 +796,65 @@ public final class EventSequenceManager {
         }
     }
 
+    // ---------------------------------------------------
+    // Stage user messages: START / TIMED / END
+    // ---------------------------------------------------
+
+    /**
+     * Send the stage START message to event participants only.
+     */
+    private void sendStageStartMessage(EventModel event, EventStageKey stageKey) {
+        UserMessageModels model = resolveStageStartModel(stageKey);
+        if (model == null) {
+            return;
+        }
+
+        Collection<UUID> participants = event.participantsSnapshot();
+        if (participants == null || participants.isEmpty()) {
+            return;
+        }
+
+        Map<String, String> placeholders = new HashMap<>();
+        placeholders.put("event", event.displayName());
+        placeholders.put("stage", stageKey.name());
+
+        for (UUID uuid : participants) {
+            Player p = Bukkit.getPlayer(uuid);
+            if (p != null && p.isOnline()) {
+                MessageResponseManager.send(p, model, placeholders);
+            }
+        }
+    }
+
+    /**
+     * Send the stage END message to event participants only.
+     */
+    private void sendStageEndMessage(EventModel event, EventStageKey stageKey) {
+        UserMessageModels model = resolveStageEndModel(stageKey);
+        if (model == null) {
+            return;
+        }
+
+        Collection<UUID> participants = event.participantsSnapshot();
+        if (participants == null || participants.isEmpty()) {
+            return;
+        }
+
+        Map<String, String> placeholders = new HashMap<>();
+        placeholders.put("event", event.displayName());
+        placeholders.put("stage", stageKey.name());
+
+        for (UUID uuid : participants) {
+            Player p = Bukkit.getPlayer(uuid);
+            if (p != null && p.isOnline()) {
+                MessageResponseManager.send(p, model, placeholders);
+            }
+        }
+    }
+
     /**
      * Send the stage "repeat" message (still using your existing *TIMED* models)
      * to event participants only.
-     *
-     * Your UserMessageModels currently look like:
-     *   LOBBY_STAGE_TIMED, INITIAL_STAGE_TIMED, ...
-     * pointing at YAML sections:
-     *   messages.user.lobby-stage.timed
-     *   messages.user.initial-stage.timed
-     *   ...
      */
     private void sendStageTimedMessage(EventModel event, EventStageKey stageKey) {
         UserMessageModels model = resolveStageTimedModel(stageKey);
@@ -538,8 +882,27 @@ public final class EventSequenceManager {
     }
 
     /**
-     * Map logical stage → timed message model.
-     * Adjust these names to your actual enum values.
+     * Map logical stage → START message model.
+     */
+    private UserMessageModels resolveStageStartModel(EventStageKey stageKey) {
+        switch (stageKey) {
+            case LOBBY:
+                return UserMessageModels.LOBBY_STAGE_START;
+            case INITIAL:
+                return UserMessageModels.INITIAL_STAGE_START;
+            case IN_BELLY:
+                return UserMessageModels.IN_BELLY_STAGE_START;
+            case POST_BELLY:
+                return UserMessageModels.POST_BELLY_STAGE_START;
+            case FINAL:
+                return UserMessageModels.FINAL_STAGE_START;
+            default:
+                return null;
+        }
+    }
+
+    /**
+     * Map logical stage → TIMED message model.
      */
     private UserMessageModels resolveStageTimedModel(EventStageKey stageKey) {
         switch (stageKey) {
@@ -553,6 +916,26 @@ public final class EventSequenceManager {
                 return UserMessageModels.POST_BELLY_STAGE_TIMED;
             case FINAL:
                 return UserMessageModels.FINAL_STAGE_TIMED;
+            default:
+                return null;
+        }
+    }
+
+    /**
+     * Map logical stage → END message model.
+     */
+    private UserMessageModels resolveStageEndModel(EventStageKey stageKey) {
+        switch (stageKey) {
+            case LOBBY:
+                return UserMessageModels.LOBBY_STAGE_END;
+            case INITIAL:
+                return UserMessageModels.INITIAL_STAGE_END;
+            case IN_BELLY:
+                return UserMessageModels.IN_BELLY_STAGE_END;
+            case POST_BELLY:
+                return UserMessageModels.POST_BELLY_STAGE_END;
+            case FINAL:
+                return UserMessageModels.FINAL_STAGE_END;
             default:
                 return null;
         }
@@ -579,6 +962,18 @@ public final class EventSequenceManager {
 
         // Per-stage runtime (commands + repeat message)
         private final Map<EventStageKey, StageRuntime> stageRuntimes = new EnumMap<>(EventStageKey.class);
+
+        // INITIAL stage dragon spawn scheduling
+        private List<String> initialDragonIds = Collections.emptyList();
+        private int initialDragonIndex = 0;
+        private Instant nextInitialDragonSpawnInstant;
+        private boolean initialSpawnsInitialized = false;
+        private boolean initialSpawnsComplete = false;
+
+        // IN_BELLY tracking (per-event + per-dragon)
+        boolean inBellyStageStarted = false;
+        final Set<UUID> inBellyParticipants = ConcurrentHashMap.newKeySet();
+        final Map<UUID, Set<UUID>> bellyPlayersByDragon = new ConcurrentHashMap<>();
 
         private ScheduledRun(Instant startInstant,
                              Instant joinWindowEndInstant,
@@ -701,6 +1096,80 @@ public final class EventSequenceManager {
 
         Collection<StageRuntime> allStageRuntimes() {
             return stageRuntimes.values();
+        }
+
+        // ----- INITIAL stage spawn scheduling ----------------------------
+
+        /**
+         * Prepare INITIAL stage dragon spawn queue.
+         * Called once when INITIAL stage starts.
+         */
+        void setupInitialDragonSpawns(EventModel event, Instant stageStartInstant) {
+            if (initialSpawnsInitialized) {
+                return;
+            }
+            initialSpawnsInitialized = true;
+
+            List<String> ids = event.dragonIds();
+            if (ids == null || ids.isEmpty()) {
+                initialSpawnsComplete = true;
+                return;
+            }
+
+            this.initialDragonIds = List.copyOf(ids);
+            this.initialDragonIndex = 0;
+            // First dragon at stage start
+            this.nextInitialDragonSpawnInstant = stageStartInstant;
+        }
+
+        /**
+         * Called each tick by EventSequenceManager to spawn INITIAL-stage dragons
+         * one at a time, spaced by event.dragonSpawnInterval().
+         */
+        void tickInitialDragonSpawns(EventModel event, Instant now) {
+            if (!initialSpawnsInitialized || initialSpawnsComplete) {
+                return;
+            }
+
+            // Ensure INITIAL stage is actually running
+            StageRuntime initialRuntime = stageRuntimes.get(EventStageKey.INITIAL);
+            if (initialRuntime == null || !initialRuntime.started || initialRuntime.ended) {
+                return;
+            }
+
+            if (nextInitialDragonSpawnInstant == null || now.isBefore(nextInitialDragonSpawnInstant)) {
+                return;
+            }
+
+            // Time to spawn one dragon
+            if (initialDragonIndex < initialDragonIds.size()) {
+                String dragonId = initialDragonIds.get(initialDragonIndex);
+                EventSequenceManager mgr = EventSequenceManager.getInstance();
+                if (mgr != null) {
+                    mgr.spawnInitialStageDragon(event, dragonId);
+                }
+                initialDragonIndex++;
+            }
+
+            // All done?
+            if (initialDragonIndex >= initialDragonIds.size()) {
+                initialSpawnsComplete = true;
+                nextInitialDragonSpawnInstant = null;
+                return;
+            }
+
+            // Schedule next spawn based on event.dragonSpawnInterval
+            Duration interval = event.dragonSpawnInterval();
+            if (interval == null || interval.isNegative()) {
+                interval = Duration.ZERO;
+            }
+
+            // If interval is zero, fall back to 1 second between spawns.
+            if (interval.isZero()) {
+                interval = Duration.ofSeconds(1);
+            }
+
+            nextInitialDragonSpawnInstant = nextInitialDragonSpawnInstant.plus(interval);
         }
 
         // ----- Inner value objects --------------------------------------
@@ -827,4 +1296,56 @@ public final class EventSequenceManager {
             return new RepeatMessageState(intervalTicks, firstFire);
         }
     }
+
+    // ---------------------------------------------------
+    // INITIAL stage dragon spawn (outer helper)
+    // ---------------------------------------------------
+
+    /**
+     * Spawn a single INITIAL-stage dragon using the shared DragonBuilder.
+     */
+    private void spawnInitialStageDragon(EventModel event, String dragonConfigId) {
+        if (dragonConfigId == null || dragonConfigId.isBlank()) {
+            return;
+        }
+
+        DragonModel model = DragonManager.getOrNull(dragonConfigId);
+        if (model == null) {
+            plugin.getLogger().warning("[ConquestDragons] INITIAL stage tried to spawn unknown dragon id '"
+                    + dragonConfigId + "' for event '" + event.id() + "'.");
+            return;
+        }
+
+        // Prefer configured dragon-spawn, fall back to INITIAL stage spawn
+        Location spawnLoc = event.dragonSpawn();
+        if (spawnLoc == null) {
+            spawnLoc = resolveInitialStageSpawn(event);
+        }
+        if (spawnLoc == null) {
+            plugin.getLogger().warning("[ConquestDragons] No valid spawn location for INITIAL dragon '"
+                    + dragonConfigId + "' in event '" + event.id() + "'.");
+            return;
+        }
+
+        try {
+            EnderDragon dragon = DragonManager.getBuilder()
+                    .model(model)
+                    .spawnAt(spawnLoc)
+                    .spawn();
+
+            // Register this dragon with the bossbar/glow manager
+            DragonBossbarManager mgr = DragonBossbarManager.getInstance();
+            if (mgr != null) {
+                mgr.trackDragon(event, dragon);
+            }
+        } catch (Exception ex) {
+            plugin.getLogger().log(
+                    Level.WARNING,
+                    "[ConquestDragons] Failed to spawn initial-stage dragon '" + dragonConfigId +
+                            "' for event '" + event.id() + "'.",
+                    ex
+            );
+        }
+    }
+
 }

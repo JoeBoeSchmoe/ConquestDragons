@@ -5,6 +5,7 @@ import org.conquestDragons.conquestDragons.ConquestDragons;
 import org.conquestDragons.conquestDragons.configurationHandler.configurationFiles.ConfigFile;
 import org.conquestDragons.conquestDragons.configurationHandler.configurationFiles.dataFiles.DragonDataFiles;
 import org.conquestDragons.conquestDragons.configurationHandler.configurationFiles.dataFiles.EventDataFiles;
+import org.conquestDragons.conquestDragons.configurationHandler.configurationFiles.defaultValueFiles.DefaultBossbarSettingsFile;
 import org.conquestDragons.conquestDragons.configurationHandler.configurationFiles.defaultValueFiles.DefaultDifficultyValuesFile;
 import org.conquestDragons.conquestDragons.configurationHandler.configurationFiles.defaultValueFiles.DefaultDragonHealthColorsFile;
 import org.conquestDragons.conquestDragons.configurationHandler.configurationFiles.integrationFiles.PlaceholderAPIManager;
@@ -57,6 +58,7 @@ public class ConfigurationManager {
             // Default Values
             DefaultDifficultyValuesFile.load();
             DefaultDragonHealthColorsFile.load();
+            DefaultBossbarSettingsFile.load();
 
             // Data Files
             DragonDataFiles.loadAll();

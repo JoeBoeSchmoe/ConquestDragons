@@ -13,14 +13,17 @@ import java.util.Objects;
  *  - default dragon registry / dragon-specific YAML
  *
  * Contains:
- *  - Identity         (id, displayName)
- *  - Difficulty       (DragonDifficultyModel, including difficultyKey + tuning enums)
+ *  - Identity          (id, displayName)
+ *  - Max health        (maxHealth)
+ *  - Difficulty        (DragonDifficultyModel, including difficultyKey + tuning enums)
  *  - Health color keys (glow + bossbar profile keys)
  */
 public record DragonModel(
 
         String id,                              // e.g. "shadowlord", "fire_dragon"
         String displayName,                     // MiniMessage: "<dark_red>Shadowlord</dark_red>"
+
+        double maxHealth,                       // base/max health for this dragon template
 
         DragonDifficultyModel difficulty,       // full difficulty preset (includes difficultyKey)
 
@@ -35,6 +38,10 @@ public record DragonModel(
         Objects.requireNonNull(difficulty, "difficulty");
         Objects.requireNonNull(glowProfileKey, "glowProfileKey");
         Objects.requireNonNull(bossbarProfileKey, "bossbarProfileKey");
+
+        if (maxHealth <= 0.0) {
+            throw new IllegalArgumentException("maxHealth must be > 0.0 (was " + maxHealth + ")");
+        }
     }
 
     // ---------------------------------------------------
@@ -62,7 +69,8 @@ public record DragonModel(
     public DragonModel withDisplayName(String newDisplayName) {
         return new DragonModel(
                 this.id,
-                newDisplayName,
+                Objects.requireNonNull(newDisplayName, "newDisplayName"),
+                this.maxHealth,
                 this.difficulty,
                 this.glowProfileKey,
                 this.bossbarProfileKey
@@ -73,6 +81,7 @@ public record DragonModel(
         return new DragonModel(
                 this.id,
                 this.displayName,
+                this.maxHealth,
                 Objects.requireNonNull(newDifficulty, "newDifficulty"),
                 this.glowProfileKey,
                 this.bossbarProfileKey
@@ -83,6 +92,7 @@ public record DragonModel(
         return new DragonModel(
                 this.id,
                 this.displayName,
+                this.maxHealth,
                 this.difficulty,
                 Objects.requireNonNull(newGlowProfileKey, "newGlowProfileKey"),
                 this.bossbarProfileKey
@@ -93,9 +103,21 @@ public record DragonModel(
         return new DragonModel(
                 this.id,
                 this.displayName,
+                this.maxHealth,
                 this.difficulty,
                 this.glowProfileKey,
                 Objects.requireNonNull(newBossbarProfileKey, "newBossbarProfileKey")
+        );
+    }
+
+    public DragonModel withMaxHealth(double newMaxHealth) {
+        return new DragonModel(
+                this.id,
+                this.displayName,
+                newMaxHealth,
+                this.difficulty,
+                this.glowProfileKey,
+                this.bossbarProfileKey
         );
     }
 }

@@ -48,6 +48,13 @@ import java.util.concurrent.ConcurrentMap;
  *        that dragon captures its share of players into the belly.
  *        Range: 0.0–1.0 (e.g. 0.35 = 35% HP).
  *
+ *  - inBellyStageDuration     : how long players must survive inside the IN_BELLY stage
+ *                               before escape / transition is allowed. Duration.ZERO can
+ *                               be treated as "no mandatory survive time".
+ *
+ *  - dragonSpawnInterval      : minimum time between individual dragon spawns when
+ *                               spawning multiple dragons in the same stage.
+ *
  *  - maxDuration              : maximum allowed length for this event from start
  *
  *  - joinWindowLength         : how long players are allowed to join after the event opens
@@ -108,6 +115,12 @@ public final class EventModel {
     private final Location dragonSpawn;
 
     /**
+     * Minimum delay between successive dragon spawns when spawning multiple
+     * dragons within the same stage.
+     */
+    private final Duration dragonSpawnInterval;
+
+    /**
      * Global completion / exit location for players after the event ends
      * or when they leave spectator mode.
      * Falls back to {@link #dragonSpawn()} when not configured.
@@ -126,6 +139,12 @@ public final class EventModel {
      * When dragonHealth / maxHealth <= this, that dragon "eats" its share.
      */
     private final double bellyTriggerHealthFraction;
+
+    /**
+     * How long players must survive inside the IN_BELLY stage before escape / transition
+     * is allowed. Duration.ZERO can be treated as "no mandatory survive time".
+     */
+    private final Duration inBellyStageDuration;
 
     /** Maximum allowed duration for the event. */
     private final Duration maxDuration;
@@ -193,99 +212,10 @@ public final class EventModel {
     // Construction
     // ---------------------------------------------------------------------
 
-    /**
-     * Convenience constructor WITHOUT explicit dragonSpawn / completionSpawn / stageAreas / rewards.
-     * dragonSpawn will default to the center of the dragonRegion.
-     *
-     * `enabled` is explicit so the loader can wire from YAML.
-     * keepInventory defaults to false here; if you want per-event control,
-     * call a full constructor from your loader.
-     */
-    public EventModel(String id,
-                      String displayName,
-                      boolean enabled,
-                      List<String> dragonIds,
-                      String bossDragonId,
-                      Location dragonCornerA,
-                      Location dragonCornerB,
-                      double bellyTriggerHealthFraction,
-                      Duration maxDuration,
-                      Duration joinWindowLength,
-                      Duration joinReminderInterval,
-                      EventSchedule schedule,
-                      List<EventStageModel> stages) {
-        this(
-                id,
-                displayName,
-                enabled,
-                /* keepInventory */ false,
-                dragonIds,
-                bossDragonId,
-                dragonCornerA,
-                dragonCornerB,
-                /* dragonSpawn      */ null,
-                /* completionSpawn  */ null,
-                /* stageAreas       */ Collections.emptyMap(),
-                bellyTriggerHealthFraction,
-                maxDuration,
-                joinWindowLength,
-                joinReminderInterval,
-                schedule,
-                stages,
-                /* completionRewards */ Collections.emptyList(),
-                /* rankingRewards    */ Collections.emptyList()
-        );
-    }
-
-    /**
-     * ORIGINAL full constructor signature (backwards compatible).
-     *
-     * NOTE: This delegates to the new constructor and treats completionSpawn as null
-     * (which means "fall back to dragonSpawn") and keepInventory as false by default.
-     */
-    public EventModel(String id,
-                      String displayName,
-                      boolean enabled,
-                      List<String> dragonIds,
-                      String bossDragonId,
-                      Location dragonCornerA,
-                      Location dragonCornerB,
-                      Location dragonSpawn,
-                      Map<EventStageKey, StageArea> playingAreas,
-                      double bellyTriggerHealthFraction,
-                      Duration maxDuration,
-                      Duration joinWindowLength,
-                      Duration joinReminderInterval,
-                      EventSchedule schedule,
-                      List<EventStageModel> stages,
-                      List<RewardSpec> completionRewards,
-                      List<RankingRewardSpec> rankingRewards) {
-        this(
-                id,
-                displayName,
-                enabled,
-                /* keepInventory */ false,
-                dragonIds,
-                bossDragonId,
-                dragonCornerA,
-                dragonCornerB,
-                dragonSpawn,
-                /* completionSpawn */ null,
-                playingAreas,
-                bellyTriggerHealthFraction,
-                maxDuration,
-                joinWindowLength,
-                joinReminderInterval,
-                schedule,
-                stages,
-                completionRewards,
-                rankingRewards
-        );
-    }
 
     /**
      * NEW full constructor including explicit dragonSpawn + completionSpawn +
-     * per-stage areas + rewards + keepInventory.
+     * per-stage areas + rewards + keepInventory + dragonSpawnInterval + inBellyStageDuration.
      *
      * This is the canonical constructor all others delegate to.
      */
@@ -301,9 +231,11 @@ public final class EventModel {
                       Location completionSpawn,
                       Map<EventStageKey, StageArea> playingAreas,
                       double bellyTriggerHealthFraction,
+                      Duration inBellyStageDuration,
                       Duration maxDuration,
                       Duration joinWindowLength,
                       Duration joinReminderInterval,
+                      Duration dragonSpawnInterval,
                       EventSchedule schedule,
                       List<EventStageModel> stages,
                       List<RewardSpec> completionRewards,
@@ -333,9 +265,11 @@ public final class EventModel {
         this.playingAreas = unmodifiableStageAreaMap(playingAreas);
 
         this.bellyTriggerHealthFraction = bellyTriggerHealthFraction;
+        this.inBellyStageDuration = Objects.requireNonNull(inBellyStageDuration, "inBellyStageDuration");
         this.maxDuration = Objects.requireNonNull(maxDuration, "maxDuration");
         this.joinWindowLength = Objects.requireNonNull(joinWindowLength, "joinWindowLength");
         this.joinReminderInterval = Objects.requireNonNull(joinReminderInterval, "joinReminderInterval");
+        this.dragonSpawnInterval = Objects.requireNonNull(dragonSpawnInterval, "dragonSpawnInterval");
         this.schedule = Objects.requireNonNull(schedule, "schedule");
 
         this.stages = unmodifiableCopy(stages);
@@ -402,22 +336,41 @@ public final class EventModel {
     private static Location resolveCompletionSpawn(Location candidate,
                                                    EventRegion region,
                                                    Location dragonSpawn) {
+        // 1) If a completion spawn was explicitly configured, use it as-is
+        if (candidate != null) {
+            World completionWorld = candidate.getWorld();
+            if (completionWorld == null) {
+                throw new IllegalArgumentException("completionSpawn world cannot be null");
+            }
+            return candidate.clone();
+        }
+
+        // 2) Otherwise fall back to the main dragon spawn (same world or not)
+        if (dragonSpawn != null) {
+            World spawnWorld = dragonSpawn.getWorld();
+            if (spawnWorld == null) {
+                throw new IllegalArgumentException(
+                        "dragonSpawn world cannot be null when used as completionSpawn fallback"
+                );
+            }
+            return dragonSpawn.clone();
+        }
+
+        // 3) Last resort: fall back to the dragonRegion itself
+        if (region == null) {
+            throw new IllegalArgumentException(
+                    "completionSpawn and dragonSpawn are null and dragonRegion is also null"
+            );
+        }
+
         Location min = region.cornerMin();
         World regionWorld = min.getWorld();
         if (regionWorld == null) {
             throw new IllegalStateException("dragonRegion has no world for corners");
         }
 
-        if (candidate != null) {
-            World spawnWorld = candidate.getWorld();
-            if (spawnWorld == null || !spawnWorld.getName().equals(regionWorld.getName())) {
-                throw new IllegalArgumentException("completionSpawn must be in the same world as dragonRegion");
-            }
-            return candidate.clone();
-        }
-
-        // Default: reuse dragon spawn
-        return dragonSpawn.clone();
+        // Fallback: just use the region's min corner (you can swap this to a center() helper if you have one)
+        return min.clone();
     }
 
     // ---------------------------------------------------------------------
@@ -457,6 +410,10 @@ public final class EventModel {
         return dragonRegion;
     }
 
+    public Duration inBellyDuration() {
+        return inBellyStageDuration;
+    }
+
     /** Global dragon spawn location. */
     public Location dragonSpawn() {
         return dragonSpawn.clone();
@@ -484,6 +441,19 @@ public final class EventModel {
     /** Health fraction at which a dragon should capture its share of players. */
     public double bellyTriggerHealthFraction() {
         return bellyTriggerHealthFraction;
+    }
+
+    /**
+     * How long players must survive inside the IN_BELLY stage before escape / transition
+     * is allowed. Duration.ZERO can be treated as "no mandatory survive time".
+     */
+    public Duration inBellyStageDuration() {
+        return inBellyStageDuration;
+    }
+
+    /** Minimum delay between successive dragon spawns within a stage. */
+    public Duration dragonSpawnInterval() {
+        return dragonSpawnInterval;
     }
 
     /** Maximum allowed duration for the event. */
@@ -651,12 +621,13 @@ public final class EventModel {
     // Damage tracking (runtime)
     // ---------------------------------------------------------------------
 
-    /** Spawn location used when a player joins the event.
-     *  Prefer the INITIAL stage's spawn if configured; otherwise fall back to the global dragonSpawn.
+    /**
+     * Spawn location used when a player joins the event.
+     * Prefer the LOBBY stage's spawn if configured; otherwise fall back to the global dragonSpawn.
      */
     public Location initialStageSpawn() {
-        // Try a per-stage area for INITIAL
-        StageArea initialArea = stageAreaOrNull(EventStageKey.INITIAL);
+        // Try a per-stage area for LOBBY
+        StageArea initialArea = stageAreaOrNull(EventStageKey.LOBBY);
         if (initialArea != null) {
             return initialArea.spawn();
         }
@@ -705,394 +676,6 @@ public final class EventModel {
         return Collections.unmodifiableList(new ArrayList<>(list));
     }
 
-    // ---------------------------------------------------------------------
-    // Immutability: with() helpers (config-level fields only)
-    // ---------------------------------------------------------------------
-
-    public EventModel withEnabled(boolean newEnabled) {
-        return new EventModel(
-                this.id,
-                this.displayName,
-                newEnabled,
-                this.keepInventory,
-                this.dragonIds,
-                this.bossDragonId,
-                this.dragonRegion.cornerMin(),
-                this.dragonRegion.cornerMax(),
-                this.dragonSpawn,
-                this.completionSpawn,
-                this.playingAreas,
-                this.bellyTriggerHealthFraction,
-                this.maxDuration,
-                this.joinWindowLength,
-                this.joinReminderInterval,
-                this.schedule,
-                this.stages,
-                this.completionRewards,
-                this.rankingRewards
-        );
-    }
-
-    public EventModel withKeepInventory(boolean newKeepInventory) {
-        return new EventModel(
-                this.id,
-                this.displayName,
-                this.enabled,
-                newKeepInventory,
-                this.dragonIds,
-                this.bossDragonId,
-                this.dragonRegion.cornerMin(),
-                this.dragonRegion.cornerMax(),
-                this.dragonSpawn,
-                this.completionSpawn,
-                this.playingAreas,
-                this.bellyTriggerHealthFraction,
-                this.maxDuration,
-                this.joinWindowLength,
-                this.joinReminderInterval,
-                this.schedule,
-                this.stages,
-                this.completionRewards,
-                this.rankingRewards
-        );
-    }
-
-    public EventModel withMaxDuration(Duration newDuration) {
-        return new EventModel(
-                this.id,
-                this.displayName,
-                this.enabled,
-                this.keepInventory,
-                this.dragonIds,
-                this.bossDragonId,
-                this.dragonRegion.cornerMin(),
-                this.dragonRegion.cornerMax(),
-                this.dragonSpawn,
-                this.completionSpawn,
-                this.playingAreas,
-                this.bellyTriggerHealthFraction,
-                Objects.requireNonNull(newDuration, "newDuration"),
-                this.joinWindowLength,
-                this.joinReminderInterval,
-                this.schedule,
-                this.stages,
-                this.completionRewards,
-                this.rankingRewards
-        );
-    }
-
-    public EventModel withStages(List<EventStageModel> newStages) {
-        return new EventModel(
-                this.id,
-                this.displayName,
-                this.enabled,
-                this.keepInventory,
-                this.dragonIds,
-                this.bossDragonId,
-                this.dragonRegion.cornerMin(),
-                this.dragonRegion.cornerMax(),
-                this.dragonSpawn,
-                this.completionSpawn,
-                this.playingAreas,
-                this.bellyTriggerHealthFraction,
-                this.maxDuration,
-                this.joinWindowLength,
-                this.joinReminderInterval,
-                this.schedule,
-                newStages,
-                this.completionRewards,
-                this.rankingRewards
-        );
-    }
-
-    public EventModel withDragonIds(List<String> newDragonIds) {
-        return new EventModel(
-                this.id,
-                this.displayName,
-                this.enabled,
-                this.keepInventory,
-                newDragonIds,
-                this.bossDragonId,
-                this.dragonRegion.cornerMin(),
-                this.dragonRegion.cornerMax(),
-                this.dragonSpawn,
-                this.completionSpawn,
-                this.playingAreas,
-                this.bellyTriggerHealthFraction,
-                this.maxDuration,
-                this.joinWindowLength,
-                this.joinReminderInterval,
-                this.schedule,
-                this.stages,
-                this.completionRewards,
-                this.rankingRewards
-        );
-    }
-
-    public EventModel withBossDragonId(String newBossId) {
-        return new EventModel(
-                this.id,
-                this.displayName,
-                this.enabled,
-                this.keepInventory,
-                this.dragonIds,
-                Objects.requireNonNull(newBossId, "newBossId"),
-                this.dragonRegion.cornerMin(),
-                this.dragonRegion.cornerMax(),
-                this.dragonSpawn,
-                this.completionSpawn,
-                this.playingAreas,
-                this.bellyTriggerHealthFraction,
-                this.maxDuration,
-                this.joinWindowLength,
-                this.joinReminderInterval,
-                this.schedule,
-                this.stages,
-                this.completionRewards,
-                this.rankingRewards
-        );
-    }
-
-    public EventModel withDragonRegion(Location cornerA, Location cornerB) {
-        return new EventModel(
-                this.id,
-                this.displayName,
-                this.enabled,
-                this.keepInventory,
-                this.dragonIds,
-                this.bossDragonId,
-                cornerA,
-                cornerB,
-                this.dragonSpawn,
-                this.completionSpawn,
-                this.playingAreas,
-                this.bellyTriggerHealthFraction,
-                this.maxDuration,
-                this.joinWindowLength,
-                this.joinReminderInterval,
-                this.schedule,
-                this.stages,
-                this.completionRewards,
-                this.rankingRewards
-        );
-    }
-
-    public EventModel withDragonRegionAndSpawn(Location cornerA, Location cornerB, Location newDragonSpawn) {
-        return new EventModel(
-                this.id,
-                this.displayName,
-                this.enabled,
-                this.keepInventory,
-                this.dragonIds,
-                this.bossDragonId,
-                cornerA,
-                cornerB,
-                newDragonSpawn,
-                this.completionSpawn,
-                this.playingAreas,
-                this.bellyTriggerHealthFraction,
-                this.maxDuration,
-                this.joinWindowLength,
-                this.joinReminderInterval,
-                this.schedule,
-                this.stages,
-                this.completionRewards,
-                this.rankingRewards
-        );
-    }
-
-    public EventModel withStageAreas(Map<EventStageKey, StageArea> newStageAreas) {
-        return new EventModel(
-                this.id,
-                this.displayName,
-                this.enabled,
-                this.keepInventory,
-                this.dragonIds,
-                this.bossDragonId,
-                this.dragonRegion.cornerMin(),
-                this.dragonRegion.cornerMax(),
-                this.dragonSpawn,
-                this.completionSpawn,
-                newStageAreas,
-                this.bellyTriggerHealthFraction,
-                this.maxDuration,
-                this.joinWindowLength,
-                this.joinReminderInterval,
-                this.schedule,
-                this.stages,
-                this.completionRewards,
-                this.rankingRewards
-        );
-    }
-
-    public EventModel withBellyTriggerHealthFraction(double newFraction) {
-        return new EventModel(
-                this.id,
-                this.displayName,
-                this.enabled,
-                this.keepInventory,
-                this.dragonIds,
-                this.bossDragonId,
-                this.dragonRegion.cornerMin(),
-                this.dragonRegion.cornerMax(),
-                this.dragonSpawn,
-                this.completionSpawn,
-                this.playingAreas,
-                newFraction,
-                this.maxDuration,
-                this.joinWindowLength,
-                this.joinReminderInterval,
-                this.schedule,
-                this.stages,
-                this.completionRewards,
-                this.rankingRewards
-        );
-    }
-
-    public EventModel withJoinWindow(Duration newJoinWindow) {
-        return new EventModel(
-                this.id,
-                this.displayName,
-                this.enabled,
-                this.keepInventory,
-                this.dragonIds,
-                this.bossDragonId,
-                this.dragonRegion.cornerMin(),
-                this.dragonRegion.cornerMax(),
-                this.dragonSpawn,
-                this.completionSpawn,
-                this.playingAreas,
-                this.bellyTriggerHealthFraction,
-                this.maxDuration,
-                Objects.requireNonNull(newJoinWindow, "newJoinWindow"),
-                this.joinReminderInterval,
-                this.schedule,
-                this.stages,
-                this.completionRewards,
-                this.rankingRewards
-        );
-    }
-
-    public EventModel withJoinReminderInterval(Duration newInterval) {
-        return new EventModel(
-                this.id,
-                this.displayName,
-                this.enabled,
-                this.keepInventory,
-                this.dragonIds,
-                this.bossDragonId,
-                this.dragonRegion.cornerMin(),
-                this.dragonRegion.cornerMax(),
-                this.dragonSpawn,
-                this.completionSpawn,
-                this.playingAreas,
-                this.bellyTriggerHealthFraction,
-                this.maxDuration,
-                this.joinWindowLength,
-                Objects.requireNonNull(newInterval, "newInterval"),
-                this.schedule,
-                this.stages,
-                this.completionRewards,
-                this.rankingRewards
-        );
-    }
-
-    public EventModel withSchedule(EventSchedule newSchedule) {
-        return new EventModel(
-                this.id,
-                this.displayName,
-                this.enabled,
-                this.keepInventory,
-                this.dragonIds,
-                this.bossDragonId,
-                this.dragonRegion.cornerMin(),
-                this.dragonRegion.cornerMax(),
-                this.dragonSpawn,
-                this.completionSpawn,
-                this.playingAreas,
-                this.bellyTriggerHealthFraction,
-                this.maxDuration,
-                this.joinWindowLength,
-                this.joinReminderInterval,
-                Objects.requireNonNull(newSchedule, "newSchedule"),
-                this.stages,
-                this.completionRewards,
-                this.rankingRewards
-        );
-    }
-
-    public EventModel withCompletionRewards(List<RewardSpec> newCompletionRewards) {
-        return new EventModel(
-                this.id,
-                this.displayName,
-                this.enabled,
-                this.keepInventory,
-                this.dragonIds,
-                this.bossDragonId,
-                this.dragonRegion.cornerMin(),
-                this.dragonRegion.cornerMax(),
-                this.dragonSpawn,
-                this.completionSpawn,
-                this.playingAreas,
-                this.bellyTriggerHealthFraction,
-                this.maxDuration,
-                this.joinWindowLength,
-                this.joinReminderInterval,
-                this.schedule,
-                this.stages,
-                newCompletionRewards,
-                this.rankingRewards
-        );
-    }
-
-    public EventModel withRankingRewards(List<RankingRewardSpec> newRankingRewards) {
-        return new EventModel(
-                this.id,
-                this.displayName,
-                this.enabled,
-                this.keepInventory,
-                this.dragonIds,
-                this.bossDragonId,
-                this.dragonRegion.cornerMin(),
-                this.dragonRegion.cornerMax(),
-                this.dragonSpawn,
-                this.completionSpawn,
-                this.playingAreas,
-                this.bellyTriggerHealthFraction,
-                this.maxDuration,
-                this.joinWindowLength,
-                this.joinReminderInterval,
-                this.schedule,
-                this.stages,
-                this.completionRewards,
-                newRankingRewards
-        );
-    }
-
-    public EventModel withCompletionSpawn(Location newCompletionSpawn) {
-        return new EventModel(
-                this.id,
-                this.displayName,
-                this.enabled,
-                this.keepInventory,
-                this.dragonIds,
-                this.bossDragonId,
-                this.dragonRegion.cornerMin(),
-                this.dragonRegion.cornerMax(),
-                this.dragonSpawn,
-                newCompletionSpawn,
-                this.playingAreas,
-                this.bellyTriggerHealthFraction,
-                this.maxDuration,
-                this.joinWindowLength,
-                this.joinReminderInterval,
-                this.schedule,
-                this.stages,
-                this.completionRewards,
-                this.rankingRewards
-        );
-    }
-
     @Override
     public String toString() {
         return "EventModel{" +
@@ -1107,6 +690,8 @@ public final class EventModel {
                 ", completionSpawn=" + completionSpawn +
                 ", stageAreas=" + playingAreas +
                 ", bellyTriggerHealthFraction=" + bellyTriggerHealthFraction +
+                ", inBellyStageDuration=" + inBellyStageDuration +
+                ", dragonSpawnInterval=" + dragonSpawnInterval +
                 ", maxDuration=" + maxDuration +
                 ", joinWindowLength=" + joinWindowLength +
                 ", joinReminderInterval=" + joinReminderInterval +

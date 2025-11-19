@@ -77,7 +77,9 @@ public final class DragonDataFiles {
         }
 
         DragonManager.reloadAll(models);
-        plugin.getLogger().info("✅  Loaded " + models.size() + " dragon(s) into DragonManager.");
+        DragonManager.initBuilder(plugin);
+
+        ConquestDragons.getInstance().getLogger().info("✅  Loaded " + models.size() + " dragon(s) into DragonManager.");
     }
 
     // ---------------------------------------------------------------------
@@ -103,12 +105,26 @@ public final class DragonDataFiles {
         // Display name is configurable, falls back to id
         String displayName = root.getString("display-name", id);
 
+        // For logging lambdas
+        final String idFinal = id;
+
+        // -------------------------
+        // Max health
+        // -------------------------
+        double maxHealth = root.getDouble("max-health", 200.0D);
+        if (maxHealth <= 0.0D) {
+            final double badValue = maxHealth;
+            plugin.getLogger().warning(() ->
+                    "⚠️  Dragon '" + idFinal + "' has invalid 'max-health' (" + badValue +
+                            "). Using fallback 200.0.");
+            maxHealth = 200.0D;
+        }
+
         // -------------------------
         // Difficulty
         // -------------------------
         String diffStr = root.getString("difficulty", "MEDIUM");
         final String diffStrFinal = diffStr;   // lambda-safe
-        final String idFinal = id;             // lambda-safe
 
         DragonDifficultyKey difficultyKey;
         try {
@@ -146,13 +162,23 @@ public final class DragonDataFiles {
         DragonGlowColorHealthKey glowKey = parseGlowProfile(plugin, root, id);
         DragonGlowColorHealthKey bossbarKey = parseBossbarProfile(plugin, root, id);
 
-        return new DragonModel(
-                id,
-                displayName,
-                difficultyModel,
-                glowKey,
-                bossbarKey
-        );
+        // -------------------------
+        // Construct DragonModel (now includes maxHealth)
+        // -------------------------
+        try {
+            return new DragonModel(
+                    id,
+                    displayName,
+                    maxHealth,
+                    difficultyModel,
+                    glowKey,
+                    bossbarKey
+            );
+        } catch (IllegalArgumentException ex) {
+            plugin.getLogger().log(Level.WARNING,
+                    "⚠️  Invalid configuration for dragon '" + id + "'. Skipping this dragon.", ex);
+            return null;
+        }
     }
 
     // ---------------------------------------------------------------------

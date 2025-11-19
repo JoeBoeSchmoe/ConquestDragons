@@ -1,11 +1,15 @@
 package org.conquestDragons.conquestDragons.dragonHandler;
 
+import org.conquestDragons.conquestDragons.ConquestDragons;
 import org.conquestDragons.conquestDragons.dragonHandler.keyHandler.DragonDifficultyKey;
 
-import java.util.*;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Locale;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.Locale;
 
 /**
  * Central in-memory registry for all loaded DragonModel instances.
@@ -18,13 +22,21 @@ public final class DragonManager {
     /** Keyed by normalized dragon id (lowercase). */
     private static final ConcurrentMap<String, DragonModel> DRAGONS = new ConcurrentHashMap<>();
 
-    private DragonManager() { }
+    /**
+     * Shared DragonBuilder instance, initialized from DragonDataFiles.loadAll().
+     * This holds the plugin reference and provides a fluent API for spawning dragons.
+     */
+    private static DragonBuilder DRAGON_BUILDER;
+
+    private DragonManager() {
+    }
 
     // ---------------------------------------------------
     // Normalize
     // ---------------------------------------------------
+
     private static String normalize(String id) {
-        return id == null ? "" : id.toLowerCase(Locale.ROOT);
+        return (id == null) ? "" : id.toLowerCase(Locale.ROOT);
     }
 
     // ---------------------------------------------------
@@ -102,5 +114,41 @@ public final class DragonManager {
         return DRAGONS.values().stream()
                 .filter(model -> model.difficulty().difficultyKey() == difficultyKey)
                 .toList();
+    }
+
+    // ---------------------------------------------------
+    // DragonBuilder wiring
+    // ---------------------------------------------------
+
+    /**
+     * Initialize the shared DragonBuilder instance.
+     * Intended to be called from DragonDataFiles.loadAll() after dragons are loaded.
+     */
+    public static void initBuilder(ConquestDragons plugin) {
+        if (plugin == null) {
+            throw new IllegalArgumentException("plugin cannot be null for DragonManager.initBuilder");
+        }
+        DRAGON_BUILDER = DragonBuilder.create(plugin);
+    }
+
+    /**
+     * Accessor for the shared DragonBuilder.
+     *
+     * Usage:
+     *   DragonManager.getBuilder()
+     *       .model(model)
+     *       .spawnAt(location)
+     *       .spawn();
+     *
+     * Throws IllegalStateException if initBuilder(...) has not been called yet.
+     */
+    public static DragonBuilder getBuilder() {
+        if (DRAGON_BUILDER == null) {
+            throw new IllegalStateException(
+                    "DragonBuilder has not been initialized. " +
+                            "Call DragonManager.initBuilder(...) from your load path (e.g. DragonDataFiles.loadAll)."
+            );
+        }
+        return DRAGON_BUILDER;
     }
 }

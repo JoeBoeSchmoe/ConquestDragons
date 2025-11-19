@@ -1,8 +1,10 @@
 C:\Users\josep\OneDrive\Desktop\ConquestDragons\ConquestDragons\projectCode\ConquestDragons\src\main\java\org\conquestDragons\conquestDragons\cooldownHandler\InteractionCooldownManager.java
 C:\Users\josep\OneDrive\Desktop\ConquestDragons\ConquestDragons\projectCode\ConquestDragons\src\main\java\org\conquestDragons\conquestDragons\dragonHandler\keyHandler\difficultyKeys\DragonAttackSpeedKey.java
+C:\Users\josep\OneDrive\Desktop\ConquestDragons\ConquestDragons\projectCode\ConquestDragons\src\main\java\org\conquestDragons\conquestDragons\configurationHandler\configurationFiles\defaultValueFiles\DefaultBossbarSettingsFile.java
 C:\Users\josep\OneDrive\Desktop\ConquestDragons\ConquestDragons\projectCode\ConquestDragons\src\main\java\org\conquestDragons\conquestDragons\responseHandler\effectHandler\TitleResponseManager.java
 C:\Users\josep\OneDrive\Desktop\ConquestDragons\ConquestDragons\projectCode\ConquestDragons\src\main\java\org\conquestDragons\conquestDragons\cooldownHandler\GUICooldownManager.java
 C:\Users\josep\OneDrive\Desktop\ConquestDragons\ConquestDragons\projectCode\ConquestDragons\src\main\java\org\conquestDragons\conquestDragons\dragonHandler\keyHandler\difficultyKeys\DragonSummonStrengthKey.java
+C:\Users\josep\OneDrive\Desktop\ConquestDragons\ConquestDragons\projectCode\ConquestDragons\src\main\java\org\conquestDragons\conquestDragons\dragonHandler\DragonBossbarManager.java
 C:\Users\josep\OneDrive\Desktop\ConquestDragons\ConquestDragons\projectCode\ConquestDragons\src\main\java\org\conquestDragons\conquestDragons\dragonHandler\DragonModel.java
 C:\Users\josep\OneDrive\Desktop\ConquestDragons\ConquestDragons\projectCode\ConquestDragons\src\main\java\org\conquestDragons\conquestDragons\commandHandler\CommandManager.java
 C:\Users\josep\OneDrive\Desktop\ConquestDragons\ConquestDragons\projectCode\ConquestDragons\src\main\java\org\conquestDragons\conquestDragons\responseHandler\messageModels\GenericMessageModels.java
@@ -36,6 +38,7 @@ C:\Users\josep\OneDrive\Desktop\ConquestDragons\ConquestDragons\projectCode\Conq
 C:\Users\josep\OneDrive\Desktop\ConquestDragons\ConquestDragons\projectCode\ConquestDragons\src\main\java\org\conquestDragons\conquestDragons\responseHandler\effectHandler\SoundCompatModel.java
 C:\Users\josep\OneDrive\Desktop\ConquestDragons\ConquestDragons\projectCode\ConquestDragons\src\main\java\org\conquestDragons\conquestDragons\dragonHandler\keyHandler\DragonDifficultyKey.java
 C:\Users\josep\OneDrive\Desktop\ConquestDragons\ConquestDragons\projectCode\ConquestDragons\src\main\java\org\conquestDragons\conquestDragons\configurationHandler\configurationFiles\dataFiles\DragonDataFiles.java
+C:\Users\josep\OneDrive\Desktop\ConquestDragons\ConquestDragons\projectCode\ConquestDragons\src\main\java\org\conquestDragons\conquestDragons\dragonHandler\DragonBuilder.java
 C:\Users\josep\OneDrive\Desktop\ConquestDragons\ConquestDragons\projectCode\ConquestDragons\src\main\java\org\conquestDragons\conquestDragons\eventHandler\EventManager.java
 C:\Users\josep\OneDrive\Desktop\ConquestDragons\ConquestDragons\projectCode\ConquestDragons\src\main\java\org\conquestDragons\conquestDragons\dragonHandler\keyHandler\difficultyKeys\DragonSpeedKey.java
 C:\Users\josep\OneDrive\Desktop\ConquestDragons\ConquestDragons\projectCode\ConquestDragons\src\main\java\org\conquestDragons\conquestDragons\eventHandler\EventModel.java

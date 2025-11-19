@@ -1,0 +1,113 @@
+# =========================================================
+# 🐉 ConquestDragons - defaultBossbarSettings.yml
+#
+# Central default settings for all bossbars used by the
+# ConquestDragons event system.
+#
+# This is meant to drive DragonBossbarManager:
+#   - Normal dragon HP bossbar
+#   - IN_BELLY survival bossbar
+#   - Final dragon boss bossbar
+#
+# Placeholders you can support in titles:
+#   {dragon_name}     - The display name of the dragon
+#   {event}           - Event display name ("Ritual of the Devourer")
+#   {health_percent}  - Dragon HP percent (0–100)
+#   {time_remaining}  - Human-readable remaining time (e.g. "30s", "1M")
+#   {stage}           - Current event stage (LOBBY, INITIAL, IN_BELLY, ...)
+#
+# NOTE:
+#   BossBar COLOR is intentionally NOT configured here.
+#   DragonBossbarManager should derive color dynamically
+#   (e.g. based on health percent or stage).
+#
+# BossBar styles:
+#   SOLID, SEGMENTED_6, SEGMENTED_10, SEGMENTED_12, SEGMENTED_20
+# =========================================================
+
+bossbars:
+
+  # -------------------------------------------------------
+  # GLOBAL DEFAULTS (used as fallback for any bar)
+  # -------------------------------------------------------
+  defaults:
+    enabled: true
+
+    # MiniMessage-compatible title
+    title: "<gold><bold>{dragon_name}</bold></gold> <gray>-</gray> <red>{health_percent}%</red>"
+
+    # Only style is configured; color is dynamic in code.
+    style: SEGMENTED_10    # SOLID/SEGMENTED_6/SEGMENTED_10/SEGMENTED_12/SEGMENTED_20
+
+    # Whether to only show the bar to players that are part of the event
+    participants-only: true
+
+    # Vanilla Wither/Dragon style flags
+    darken-screen: false
+    create-fog:   false
+    play-boss-music: false
+
+    # How often bossbar progress/title is refreshed (in ticks)
+    update-interval-ticks: 10   # 0.5s
+
+  # -------------------------------------------------------
+  # NORMAL DRAGON BOSSBAR (generic dragons)
+  # -------------------------------------------------------
+  dragon:
+    enabled: true
+
+    # Example: "<gold><bold>Ritual Drake</bold></gold> - 74%"
+    title: "<gold><bold>{dragon_name}</bold></gold> <gray>-</gray> <red>{health_percent}%</red>"
+
+    # Style only; color is chosen dynamically (e.g. by HP thresholds).
+    style: SEGMENTED_10
+
+    darken-screen: false
+    create-fog:   false
+    play-boss-music: false
+
+    update-interval-ticks: 10
+
+  # -------------------------------------------------------
+  # IN_BELLY SURVIVAL BOSSBAR
+  # - Typically shown ONLY to players currently inside the belly arena.
+  # - Progress is usually based on remaining survival time.
+  # -------------------------------------------------------
+  in-belly:
+    enabled: true
+
+    # Example:
+    #   "Inside the Maw - Survive 30s"
+    title: "<dark_red><bold>Inside the Maw</bold></dark_red> <gray>- Survive <yellow>{time_remaining}</yellow></gray>"
+
+    # Style only; color usually set in code for "danger" feel.
+    style: SOLID
+
+    # Make this feel more claustrophobic if desired
+    darken-screen: true
+    create-fog:   true
+    play-boss-music: false
+
+    # Update more frequently if you want smooth countdown progress
+    update-interval-ticks: 5   # 0.25s
+
+  # -------------------------------------------------------
+  # FINAL DRAGON BOSSBAR
+  # - Big cinematic boss bar for the Apex / final dragon.
+  # -------------------------------------------------------
+  final-dragon:
+    enabled: true
+
+    # Example:
+    #   "Apex Devourer - 42%"
+    title: "<dark_purple><bold>Apex Devourer</bold></dark_purple> <gray>-</gray> <red>{health_percent}%</red>"
+
+    # Style only; color can be hot red / pulsing in code.
+    style: SEGMENTED_20
+
+    # Really lean into the drama
+    darken-screen: true
+    create-fog:   true
+    play-boss-music: true
+
+    update-interval-ticks: 5

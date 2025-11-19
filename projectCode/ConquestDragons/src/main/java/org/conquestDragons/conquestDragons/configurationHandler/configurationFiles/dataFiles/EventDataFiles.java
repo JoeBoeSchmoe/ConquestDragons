@@ -218,6 +218,24 @@ public final class EventDataFiles {
         if (joinReminderSeconds <= 0L) joinReminderSeconds = 60L;
         Duration joinReminderInterval = Duration.ofSeconds(joinReminderSeconds);
 
+        // NEW: in-belly-stage-duration-seconds → Duration
+        long inBellyStageDurationSeconds = root.getLong("in-belly-stage-duration-seconds", 90L);
+        if (inBellyStageDurationSeconds <= 0L) {
+            plugin.getLogger().warning("⚠️  Event '" + id + "' has non-positive 'in-belly-stage-duration-seconds' (" +
+                    inBellyStageDurationSeconds + "). Using 1 second instead.");
+            inBellyStageDurationSeconds = 1L;
+        }
+        Duration inBellyStageDuration = Duration.ofSeconds(inBellyStageDurationSeconds);
+
+        // NEW: dragon-spawn-interval-seconds → Duration
+        long dragonSpawnIntervalSeconds = root.getLong("dragon-spawn-interval-seconds", 0L);
+        if (dragonSpawnIntervalSeconds < 0L) {
+            plugin.getLogger().warning("⚠️  Event '" + id + "' has negative 'dragon-spawn-interval-seconds' (" +
+                    dragonSpawnIntervalSeconds + "). Using 0 instead.");
+            dragonSpawnIntervalSeconds = 0L;
+        }
+        Duration dragonSpawnInterval = Duration.ofSeconds(dragonSpawnIntervalSeconds);
+
         // -------------------------
         // Schedule (repeat + time-of-day + pre-start-reminders)
         // -------------------------
@@ -242,7 +260,8 @@ public final class EventDataFiles {
                 parseRankingRewards(plugin, id, root);
 
         // -------------------------
-        // Construct model (FULL ctor with completionSpawn + playingAreas + keepInventory)
+        // Construct model (FULL ctor with completionSpawn + playingAreas +
+        // keepInventory + inBellyStageDuration + dragonSpawnInterval)
         // -------------------------
         try {
             return new EventModel(
@@ -258,9 +277,11 @@ public final class EventDataFiles {
                     completionSpawn,   // may be null → EventModel will fall back to dragonSpawn
                     playingAreas,
                     bellyTriggerHealthFraction,
+                    inBellyStageDuration,   // 🔥 NEW
                     maxDuration,
                     joinWindowLength,
                     joinReminderInterval,
+                    dragonSpawnInterval,
                     schedule,
                     stages,
                     completionRewards,

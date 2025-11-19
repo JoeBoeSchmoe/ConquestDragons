@@ -75,6 +75,13 @@ event:
     pitch: 0.0
 
   # ---------------------------------------------------
+  # DRAGON SPAWN INTERVAL
+  # ---------------------------------------------------
+  # Minimum delay between spawning multiple dragons
+  # during the same stage (e.g., 5 seconds = 5s).
+  dragon-spawn-interval-seconds: 5
+
+  # ---------------------------------------------------
   # COMPLETION / EXIT SPAWN
   # - This maps to EventModel.completionSpawn
   # - Used when the event ends or when a player exits spectator mode.
@@ -206,6 +213,14 @@ event:
   # ---------------------------------------------------
   belly-trigger-health-fraction: 0.35
 
+  # ---------------------------------------------------
+  # IN_BELLY SURVIVAL DURATION
+  # ---------------------------------------------------
+  # How long players must survive inside the IN_BELLY stage
+  # before they are eligible to escape / be released.
+  # This maps to EventModel.inBellyStageDuration.
+  # Example: 300 seconds = 5.0 minutes.
+  in-belly-stage-duration-seconds: 300
 
   # ---------------------------------------------------
   # SCHEDULING & DURATION
