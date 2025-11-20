@@ -15,7 +15,6 @@ import org.conquestDragons.conquestDragons.configurationHandler.configurationFil
 import org.conquestDragons.conquestDragons.configurationHandler.configurationFiles.messageFiles.GenericMessagesFile;
 import org.conquestDragons.conquestDragons.configurationHandler.configurationFiles.messageFiles.UserMessagesFile;
 
-
 import java.util.logging.Logger;
 
 /**
@@ -72,35 +71,62 @@ public class ConfigurationManager {
 
     /**
      * Validates the presence of expected top-level keys from the current base config.yml.
-     * (Only foundation keys for now; expand as feature land.)
+     * (Only foundation keys for now; expand as features land.)
      */
     private void checkAll() {
         log.info("🔍  Validating config.yml structure...");
+
+        // --------------------------------------------------
         // Global prefix
+        // --------------------------------------------------
         check("chat-prefix");
 
+        // --------------------------------------------------
         // Integrations
+        // --------------------------------------------------
         check("integrations.economy.use-vault");
         check("integrations.placeholders.use-placeholderapi");
         check("integrations.worldguard.enable-hook");
 
+        // --------------------------------------------------
         // Command aliases
+        // --------------------------------------------------
         check("command-aliases");
 
+        // --------------------------------------------------
         // Cooldowns (foundation naming)
+        // --------------------------------------------------
         check("cooldowns.command-cooldown-ms");
         check("cooldowns.gui-action-cooldown-ms");
         check("cooldowns.interaction-cooldown-ms");
 
+        // --------------------------------------------------
         // GUI
+        // --------------------------------------------------
         check("gui.timeout-seconds");
 
+        // --------------------------------------------------
         // Timezone
+        // --------------------------------------------------
         check("time.timezone");
 
+        // --------------------------------------------------
         // Storage
+        // --------------------------------------------------
         check("storage.autosave-seconds");
         check("storage.save-on-shutdown");
+
+        // --------------------------------------------------
+        // Dragon Event Command Restrictions
+        // (mirrors duel plugin style, but dragon-specific)
+        // --------------------------------------------------
+        check("command-restrictions.whitelist-worlds");
+        check("command-restrictions.allowed-worlds");
+        check("command-restrictions.whitelist-enabled");
+        check("command-restrictions.global-whitelist");
+        check("command-restrictions.participant-whitelist");
+        check("command-restrictions.spectator-whitelist");
+        // NOTE: no bypass-permission here; it is hardcoded in code.
     }
 
     /**

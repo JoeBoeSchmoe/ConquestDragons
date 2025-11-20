@@ -47,13 +47,46 @@ command-aliases:
   - dragons
 
 # ===================================================
+# 🚫 Command Restrictions During Dragon Events
+# Controls what players are allowed to run while they
+# are part of a ConquestDragons event.
+# ===================================================
+command-restrictions:
+
+  # 🌍 World Restriction (Optional)
+  whitelist-worlds: false
+
+  # 🌐 Allowed Worlds (only applies if whitelist-worlds is true)
+  allowed-worlds:
+    - world
+    - DomainOfTheDragon
+  #  - example_world
+
+  # 🧾 Enable Command Whitelist System
+  whitelist-enabled: true
+
+  # 🌐 Global Whitelist
+  global-whitelist:
+    - /msg
+    - /r
+    - /tell
+
+  # 🐉 Event Participant Whitelist
+  participant-whitelist:
+    - /dragons leave
+
+  # 👁️ Spectator Whitelist
+  spectator-whitelist:
+    - /dragons spectate leave
+
+# ===================================================
 # ⏱️ Cooldowns
 # Simple, general-purpose delays to prevent spam.
 # ===================================================
 cooldowns:
   command-cooldown-ms: 250          # Delay before executing plugin-managed commands
-  gui-action-cooldown-ms: 150    # Prevents spam clicking GUIs too fast
-  interaction-cooldown-ms: 1000  # Delay between right-click interactions handled by the plugin
+  gui-action-cooldown-ms: 150       # Prevents spam clicking GUIs too fast
+  interaction-cooldown-ms: 1000     # Delay between right-click interactions handled by the plugin
 
 # ===================================================
 # 🕒 GUI Settings

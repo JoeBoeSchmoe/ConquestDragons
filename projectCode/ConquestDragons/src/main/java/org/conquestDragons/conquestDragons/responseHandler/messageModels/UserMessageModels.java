@@ -35,6 +35,12 @@ public enum UserMessageModels {
     USER_LEAVE_BLOCKED_DURING_EVENT("messages.user.leave-blocked-during-event"),
 
     // =====================================================
+    // ❌ COMMAND RESTRICTION DURING EVENT
+    // =====================================================
+
+    COMMAND_RESTRICTED_DURING_EVENT("messages.user.command-restricted-during-event"),
+
+    // =====================================================
     // 🐉 EVENT LIFECYCLE
     // =====================================================
 

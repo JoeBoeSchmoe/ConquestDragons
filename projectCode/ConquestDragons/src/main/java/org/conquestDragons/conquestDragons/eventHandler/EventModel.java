@@ -590,6 +590,23 @@ public final class EventModel {
         return Collections.unmodifiableSet(participants.keySet());
     }
 
+    /**
+     * Clear all participants and their tracked damage.
+     * Intended to be called when an event run fully ends.
+     */
+    public void clearParticipants() {
+        participants.clear();
+        damageByPlayer.clear();
+    }
+
+    /**
+     * Clear all spectators for this event.
+     * Intended to be called when an event run fully ends.
+     */
+    public void clearSpectators() {
+        spectators.clear();
+        damageByPlayer.clear();
+    }
     // ---------------------------------------------------------------------
     // Spectators (runtime)
     // ---------------------------------------------------------------------

@@ -7,9 +7,11 @@ C:\Users\josep\OneDrive\Desktop\ConquestDragons\ConquestDragons\projectCode\Conq
 C:\Users\josep\OneDrive\Desktop\ConquestDragons\ConquestDragons\projectCode\ConquestDragons\src\main\java\org\conquestDragons\conquestDragons\dragonHandler\DragonBossbarManager.java
 C:\Users\josep\OneDrive\Desktop\ConquestDragons\ConquestDragons\projectCode\ConquestDragons\src\main\java\org\conquestDragons\conquestDragons\dragonHandler\DragonModel.java
 C:\Users\josep\OneDrive\Desktop\ConquestDragons\ConquestDragons\projectCode\ConquestDragons\src\main\java\org\conquestDragons\conquestDragons\commandHandler\CommandManager.java
+C:\Users\josep\OneDrive\Desktop\ConquestDragons\ConquestDragons\projectCode\ConquestDragons\src\main\java\org\conquestDragons\conquestDragons\listenerHandler\CommandRestrictionListener.java
 C:\Users\josep\OneDrive\Desktop\ConquestDragons\ConquestDragons\projectCode\ConquestDragons\src\main\java\org\conquestDragons\conquestDragons\responseHandler\messageModels\GenericMessageModels.java
 C:\Users\josep\OneDrive\Desktop\ConquestDragons\ConquestDragons\projectCode\ConquestDragons\src\main\java\org\conquestDragons\conquestDragons\commandHandler\subcommandHandler\UserCommandManager.java
 C:\Users\josep\OneDrive\Desktop\ConquestDragons\ConquestDragons\projectCode\ConquestDragons\src\main\java\org\conquestDragons\conquestDragons\commandHandler\permissionHandler\PermissionManager.java
+C:\Users\josep\OneDrive\Desktop\ConquestDragons\ConquestDragons\projectCode\ConquestDragons\src\main\java\org\conquestDragons\conquestDragons\dragonHandler\InBellyBossbarManager.java
 C:\Users\josep\OneDrive\Desktop\ConquestDragons\ConquestDragons\projectCode\ConquestDragons\src\main\java\org\conquestDragons\conquestDragons\eventHandler\EventStageModel.java
 C:\Users\josep\OneDrive\Desktop\ConquestDragons\ConquestDragons\projectCode\ConquestDragons\src\main\java\org\conquestDragons\conquestDragons\configurationHandler\configurationFiles\integrationFiles\WorldGuardManager.java
 C:\Users\josep\OneDrive\Desktop\ConquestDragons\ConquestDragons\projectCode\ConquestDragons\src\main\java\org\conquestDragons\conquestDragons\dragonHandler\keyHandler\difficultyKeys\DragonSummonSpeedKey.java

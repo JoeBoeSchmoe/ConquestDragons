@@ -7,6 +7,7 @@ import java.util.Collections;
 import java.util.Locale;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
@@ -177,6 +178,50 @@ public final class EventManager {
                             .anyMatch(normalized::equals);
                 })
                 .toList();
+    }
+
+    // ---------------------------------------------------
+    // Runtime participant / spectator lookup
+    // ---------------------------------------------------
+
+    /**
+     * Find the event (if any) in which the given player is currently a participant.
+     *
+     * @param playerId UUID of the player
+     * @return EventModel or null if the player is not a participant in any event
+     */
+    public static EventModel findEventByParticipant(UUID playerId) {
+        if (playerId == null) {
+            return null;
+        }
+        for (EventModel event : EVENTS.values()) {
+            if (!event.enabled()) continue;
+            if (!event.isRunning()) continue;
+            if (event.isParticipant(playerId)) {
+                return event;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Find the event (if any) in which the given player is currently a spectator.
+     *
+     * @param playerId UUID of the player
+     * @return EventModel or null if the player is not spectating any event
+     */
+    public static EventModel findEventBySpectator(UUID playerId) {
+        if (playerId == null) {
+            return null;
+        }
+        for (EventModel event : EVENTS.values()) {
+            if (!event.enabled()) continue;
+            if (!event.isRunning()) continue;
+            if (event.isSpectator(playerId)) {
+                return event;
+            }
+        }
+        return null;
     }
 
     // ---------------------------------------------------

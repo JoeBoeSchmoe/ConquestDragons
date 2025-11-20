@@ -703,4 +703,28 @@ messages:
         subtitle: "<gray>You must wait for this stage to end.</gray>"
         timings: { fadeIn: 10, stay: 40, fadeOut: 20 }
 
+    command-restricted-during-event:
+      text:
+        - "<red><bold>⛔ Command blocked during Dragon Event!</bold></red>"
+        - "<gray>You cannot use <yellow>{command}</yellow> while in:</gray> <aqua>{eventName}</aqua>"
+        - "<yellow>Finish the event or leave it before using this command.</yellow>"
+      hover: "<gray>Commands are restricted while you are in {eventName}.</gray>"
+      click: "/dragons leave"
+      clickType: "SUGGEST_COMMAND"
+      components:
+        - text: "<aqua>[Leave Event]</aqua>"
+          hover: "<gray>Click to autofill /dragons leave</gray>"
+          click: "/dragons leave"
+          clickType: "SUGGEST_COMMAND"
+      prefix: false
+      sound: { type: BLOCK_NOTE_BLOCK_BASS, volume: 1.0, pitch: 0.8 }
+      particles: [ { type: SMOKE_NORMAL, count: 8, offset: [0.2, 0.4, 0.2], speed: 0.02 } ]
+      effects: [ { type: SLOWNESS, amplifier: 0, duration: 40 } ]
+      bossbar: { text: "<red>Command blocked during <yellow>{eventName}</yellow>.</red>", color: "RED", overlay: "PROGRESS", time: 60, progress: 0.0 }
+      actionbar: { text: "<red>You cannot use <yellow>{command}</yellow> during <yellow>{eventName}</yellow>.</red>", duration: 60 }
+      title:
+        text: "<dark_red><bold>Command Restricted</bold></dark_red>"
+        subtitle: "<gray>You are currently in <aqua>{eventName}</aqua>.</gray>"
+        timings: { fadeIn: 10, stay: 40, fadeOut: 20 }
+
 # End Of Config :)

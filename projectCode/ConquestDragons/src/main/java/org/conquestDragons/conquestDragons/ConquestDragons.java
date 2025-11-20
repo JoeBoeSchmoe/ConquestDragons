@@ -1,13 +1,19 @@
 package org.conquestDragons.conquestDragons;
 
 import org.bukkit.Bukkit;
+import org.bukkit.World;
+import org.bukkit.Location;
 import org.bukkit.command.PluginCommand;
+import org.bukkit.entity.EnderDragon;
+import org.bukkit.entity.Player;
 import org.bukkit.event.Listener;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.conquestDragons.conquestDragons.commandHandler.CommandManager;
 import org.conquestDragons.conquestDragons.configurationHandler.ConfigurationManager;
-import org.conquestDragons.conquestDragons.configurationHandler.configurationFiles.dataFiles.EventDataFiles;
+import org.conquestDragons.conquestDragons.eventHandler.EventManager;
+import org.conquestDragons.conquestDragons.eventHandler.EventModel;
 import org.conquestDragons.conquestDragons.eventHandler.EventSequenceManager;
+import org.conquestDragons.conquestDragons.listenerHandler.CommandRestrictionListener;
 import org.conquestDragons.conquestDragons.listenerHandler.EventRegionManager;
 
 import java.util.*;
@@ -42,7 +48,7 @@ public final class ConquestDragons extends JavaPlugin {
         // Config / data
         // ---------------------------------------------------
         configurationManager = new ConfigurationManager();
-        configurationManager.initialize(); // load base configs (config.yml, etc.
+        configurationManager.initialize(); // load base configs (config.yml, etc.)
 
         // ---------------------------------------------------
         // Commands & listeners
@@ -52,6 +58,7 @@ public final class ConquestDragons extends JavaPlugin {
                 // new PlayerJoinListener()
                 // new ClanChatListener()
                 // new RegionGuardListener()
+                new CommandRestrictionListener(),
                 new EventRegionManager()
         );
 
@@ -63,10 +70,12 @@ public final class ConquestDragons extends JavaPlugin {
         getLogger().info("✅  ConquestDragons fully loaded.");
     }
 
-
     @Override
     public void onDisable() {
         getLogger().info("📦  Saving plugin state...");
+
+        // Emergency: clean up any running/joinable events and dragons
+        emergencyTerminateActiveEvents();
 
         // Stop scheduled event sequences cleanly
         EventSequenceManager.stop();
@@ -79,6 +88,9 @@ public final class ConquestDragons extends JavaPlugin {
      */
     public void reload() {
         getLogger().info("🔄  Reloading ConquestDragons...");
+
+        // Before touching configs or schedules, clean up any active events/dragons.
+        emergencyTerminateActiveEvents();
 
         // Base configs
         configurationManager.initialize();
@@ -168,6 +180,88 @@ public final class ConquestDragons extends JavaPlugin {
     private void registerListeners(Listener... listeners) {
         for (Listener listener : listeners) {
             Bukkit.getPluginManager().registerEvents(listener, this);
+        }
+    }
+
+    // ---------------------------------------------------------------------
+    // Emergency cleanup on disable / reload
+    // ---------------------------------------------------------------------
+
+    /**
+     * Emergency safety:
+     *
+     * - For any event that is currently running OR has an open join window:
+     *      • Teleport all participants to completionSpawn (if defined),
+     *        otherwise dragonSpawn, otherwise their world spawn.
+     *      • Mark event as not running and not joinable.
+     *
+     * - Then hard-kill all EnderDragons across all worlds.
+     *
+     * This is used on plugin disable and reload to avoid leaving players
+     * stuck in belly/final arenas or leaving stray dragons alive.
+     */
+    private void emergencyTerminateActiveEvents() {
+        int affectedEvents = 0;
+        int teleportedPlayers = 0;
+        int killedDragons = 0;
+
+        // 1) Clean up events + participants
+        for (EventModel eventModel : EventManager.all()) {
+            boolean active = eventModel.isRunning() || eventModel.isJoinWindowOpen();
+            if (!active) {
+                continue;
+            }
+
+            affectedEvents++;
+
+            // Decide where to send players:
+            //  - prefer completionSpawn
+            //  - fallback to dragonSpawn
+            Location target = eventModel.completionSpawn();
+            if (target == null) {
+                target = eventModel.dragonSpawn();
+            }
+
+            for (UUID uuid : eventModel.participantsSnapshot()) {
+                Player player = Bukkit.getPlayer(uuid);
+                if (player == null || !player.isOnline()) {
+                    continue;
+                }
+
+                Location safeTarget = target;
+                if (safeTarget == null) {
+                    // As an absolute fallback, use the player's world spawn
+                    safeTarget = player.getWorld().getSpawnLocation();
+                }
+
+                player.teleport(safeTarget);
+                teleportedPlayers++;
+            }
+
+            // Mark event as no longer active; RegionManager will stop enforcing
+            eventModel.setRunning(false);
+            eventModel.setJoinWindowOpen(false);
+        }
+
+        // 2) Kill all EnderDragons in all worlds
+        for (World world : Bukkit.getWorlds()) {
+            for (EnderDragon dragon : world.getEntitiesByClass(EnderDragon.class)) {
+                try {
+                    dragon.setHealth(0.0);
+                } catch (Throwable t) {
+                    // If something weird happens, just remove the entity
+                    dragon.remove();
+                }
+                killedDragons++;
+            }
+        }
+
+        if (affectedEvents > 0 || teleportedPlayers > 0 || killedDragons > 0) {
+            getLogger().info(
+                    "🧹 Emergency cleanup → events=" + affectedEvents +
+                            ", playersTeleported=" + teleportedPlayers +
+                            ", dragonsKilled=" + killedDragons
+            );
         }
     }
 

@@ -20,26 +20,14 @@ import java.util.UUID;
  * back to that stage's spawn. If the stage has no explicit StageArea,
  * falls back to the global dragonRegion/dragonSpawn.
  *
- * Example YAML (per stage):
+ * Region enforcement is only active while:
+ *   - the join window is open (LOBBY waiting), OR
+ *   - the event is running combat stages (isRunning() == true).
  *
- *   LOBBY:
- *     region:
- *       world: "world"
- *       corner-a:
- *         x: 90.0
- *         y: 64.0
- *         z: 90.0
- *       corner-b:
- *         x: 160.0
- *         y: 80.0
- *         z: 160.0
- *     spawn:
- *       world: "world"
- *       x: 125.5
- *       y: 66.0
- *       z: 125.5
- *       yaw: 0.0
- *       pitch: 0.0
+ * After the event ends and EventSequenceManager marks:
+ *   - event.setRunning(false);
+ *   - event.setJoinWindowOpen(false);
+ * this listener stops enforcing bounds so players can freely leave.
  */
 public final class EventRegionManager implements Listener {
 
@@ -74,18 +62,21 @@ public final class EventRegionManager implements Listener {
             return; // player is not in any event
         }
 
-        // If you only want enforcement while running, uncomment:
-        // if (!currentEvent.isRunning()) {
-        //     return;
-        // }
+        // ✅ Only enforce region while event is "active":
+        //    - during join window (LOBBY) OR while running combat stages.
+        if (!currentEvent.isRunning() && !currentEvent.isJoinWindowOpen()) {
+            return;
+        }
 
         EventStageKey stageKey = currentEvent.currentStageKey();
+        if (stageKey == null) {
+            return;
+        }
 
         // Determine which region + spawn to enforce:
         //  - Prefer the current stage's StageArea (if configured)
         //  - Otherwise fall back to global dragonRegion/dragonSpawn
-        EventModel.StageArea stageArea =
-                (stageKey != null) ? currentEvent.stageAreaOrNull(stageKey) : null;
+        EventModel.StageArea stageArea = currentEvent.stageAreaOrNull(stageKey);
 
         EventModel.EventRegion region;
         Location spawn;
@@ -96,6 +87,11 @@ public final class EventRegionManager implements Listener {
         } else {
             region = currentEvent.dragonRegion();
             spawn = currentEvent.dragonSpawn();
+        }
+
+        // If we have no region or no spawn, don't enforce anything
+        if (region == null || spawn == null) {
+            return;
         }
 
         // Already inside region → nothing to do
