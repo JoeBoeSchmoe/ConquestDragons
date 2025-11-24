@@ -1,5 +1,6 @@
 package org.conquestDragons.conquestDragons.commandHandler.subcommandHandler;
 
+import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.conquestDragons.conquestDragons.commandHandler.permissionHandler.PermissionManager;
@@ -32,6 +33,8 @@ public class UserCommandManager {
                 return handleJoin(player, args);
             case "leave":
                 return handleLeave(player, args);
+            case "spectate":
+                return handleSpectate(player, args);
 
             default:
                 MessageResponseManager.send(player, GenericMessageModels.UNKNOWN_COMMAND);
@@ -57,6 +60,157 @@ public class UserCommandManager {
         }
 
         MessageResponseManager.sendUserHelpPage(player, "messages.user.help", page);
+        return true;
+    }
+
+    /**
+     * /dragons spectate <eventName>
+     * /dragons spectate leave
+     *
+     * Behaviour:
+     *  - /dragons spectate leave
+     *      • Checks USER_SPECTATE_LEAVE
+     *      • If not currently spectating any event → "not spectating"
+     *      • Otherwise:
+     *          - teleport to completionSpawn (if defined)
+     *          - set gamemode back to SURVIVAL if currently SPECTATOR
+     *          - remove from spectators
+     *          - send "spectate leave success"
+     *
+     *  - /dragons spectate <eventName>
+     *      • Checks USER_SPECTATE
+     *      • Requires explicit eventName (no auto-selection)
+     *      • If player is participating in ANY event → use COMMAND_RESTRICTED_DURING_EVENT
+     *      • If event is unknown, disabled, or not running → "spectate join not available"
+     *      • If already spectating an event:
+     *          - if same → "already spectating"
+     *          - if different → "already spectating" (must leave first)
+     *      • Otherwise:
+     *          - add spectator
+     *          - set gamemode to SPECTATOR
+     *          - teleport to dragon-spawn (if configured, else fallback)
+     *          - send "spectate join success"
+     */
+    private static boolean handleSpectate(Player player, String[] args) {
+        // /dragons spectate leave
+        if (args.length >= 2 && args[1].equalsIgnoreCase("leave")) {
+            if (!PermissionManager.has(player, PermissionModels.USER_SPECTATE_LEAVE)) {
+                MessageResponseManager.send(player, GenericMessageModels.NO_PERMISSION);
+                return true;
+            }
+
+            final UUID uuid = player.getUniqueId();
+
+            // Find event this player is currently spectating
+            EventModel spectatedEvent = EventManager.findEventBySpectator(uuid);
+            if (spectatedEvent == null) {
+                // Not spectating anything
+                MessageResponseManager.send(player, UserMessageModels.SPECTATE_LEAVE_NOT_SPECTATING);
+                return true;
+            }
+
+            // Teleport them out to completion spawn if configured
+            Location completionSpawn = spectatedEvent.completionSpawn();
+            if (completionSpawn != null) {
+                player.teleport(completionSpawn);
+            }
+
+            // Ensure they are no longer in spectator mode.
+            // (Matches EventSequenceManager.scheduleSpectatorCompletionTeleport behaviour)
+            if (player.getGameMode() == GameMode.SPECTATOR) {
+                player.setGameMode(GameMode.SURVIVAL);
+            }
+
+            // Remove from spectators
+            spectatedEvent.removeSpectator(uuid);
+
+            // Success message with {eventName}
+            MessageResponseManager.send(
+                    player,
+                    UserMessageModels.SPECTATE_LEAVE_SUCCESS,
+                    Map.of("eventName", spectatedEvent.id())
+            );
+            return true;
+        }
+
+        // /dragons spectate <eventName>
+        if (!PermissionManager.has(player, PermissionModels.USER_SPECTATE)) {
+            MessageResponseManager.send(player, GenericMessageModels.NO_PERMISSION);
+            return true;
+        }
+
+        final UUID uuid = player.getUniqueId();
+
+        // Require an explicit event name for spectating
+        if (args.length < 2) {
+            // Reuse join usage as a generic "specify event" hint
+            MessageResponseManager.send(player, UserMessageModels.USER_JOIN_USAGE);
+            return true;
+        }
+
+        String targetEventId = args[1];
+
+        // Block spectate if they are currently a participant in ANY event
+        EventModel participantEvent = EventManager.findEventByParticipant(uuid);
+        if (participantEvent != null) {
+            MessageResponseManager.send(
+                    player,
+                    UserMessageModels.COMMAND_RESTRICTED_DURING_EVENT,
+                    Map.of(
+                            "command", "/dragons spectate " + targetEventId,
+                            "eventName", participantEvent.id()
+                    )
+            );
+            return true;
+        }
+
+        // Lookup target event
+        EventModel targetEvent = EventManager.getOrNull(targetEventId);
+        if (targetEvent == null || !targetEvent.enabled() || !targetEvent.isRunning()) {
+            // Unknown, disabled, or not currently running → not spectatable
+            MessageResponseManager.send(
+                    player,
+                    UserMessageModels.SPECTATE_JOIN_NOT_AVAILABLE,
+                    Map.of("eventName", targetEventId)
+            );
+            return true;
+        }
+
+        // Check if already spectating something
+        EventModel existingSpectate = EventManager.findEventBySpectator(uuid);
+        if (existingSpectate != null) {
+            // If already spectating this exact event, say so
+            MessageResponseManager.send(
+                    player,
+                    UserMessageModels.SPECTATE_JOIN_ALREADY_SPECTATING,
+                    Map.of("eventName", existingSpectate.id())
+            );
+            return true;
+        }
+
+        // Actually add as spectator
+        targetEvent.addSpectator(uuid);
+
+        // Put them into spectator gamemode for the duration of spectating
+        if (player.getGameMode() != GameMode.SPECTATOR) {
+            player.setGameMode(GameMode.SPECTATOR);
+        }
+
+        // Teleport to dragon-spawn first; fall back to initialStageSpawn if needed
+        Location spectateLocation = targetEvent.dragonSpawn();
+        if (spectateLocation == null) {
+            spectateLocation = targetEvent.initialStageSpawn();
+        }
+        if (spectateLocation != null) {
+            player.teleport(spectateLocation);
+        }
+
+        // Success
+        MessageResponseManager.send(
+                player,
+                UserMessageModels.SPECTATE_JOIN_SUCCESS,
+                Map.of("eventName", targetEvent.id())
+        );
         return true;
     }
 

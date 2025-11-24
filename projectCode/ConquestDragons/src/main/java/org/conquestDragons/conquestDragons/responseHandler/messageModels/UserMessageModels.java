@@ -34,6 +34,22 @@ public enum UserMessageModels {
     USER_LEAVE_NOT_IN_EVENT("messages.user.leave-not-in-event"),
     USER_LEAVE_BLOCKED_DURING_EVENT("messages.user.leave-blocked-during-event"),
 
+
+    // =====================================================
+    // 👁 SPECTATE JOIN MESSAGES
+    // =====================================================
+
+    SPECTATE_JOIN_SUCCESS("messages.user.spectate-join-success"),
+    SPECTATE_JOIN_ALREADY_SPECTATING("messages.user.spectate-join-already-spectating"),
+    SPECTATE_JOIN_NOT_AVAILABLE("messages.user.spectate-join-not-available"),
+
+    // =====================================================
+    // 👁 SPECTATE LEAVE MESSAGES
+    // =====================================================
+
+    SPECTATE_LEAVE_SUCCESS("messages.user.spectate-leave-success"),
+    SPECTATE_LEAVE_NOT_SPECTATING("messages.user.spectate-leave-not-spectating"),
+
     // =====================================================
     // ❌ COMMAND RESTRICTION DURING EVENT
     // =====================================================
@@ -57,6 +73,9 @@ public enum UserMessageModels {
     LOBBY_STAGE_START("messages.user.lobby-stage.start"),
     LOBBY_STAGE_TIMED("messages.user.lobby-stage.timed"),
     LOBBY_STAGE_END("messages.user.lobby-stage.end"),
+
+    EVENT_WIN("messages.user.event-win"),
+    EVENT_DEFEAT("messages.user.event-defeat"),
 
     // =====================================================
     // ⚔ INITIAL STAGE (start → timed → end)

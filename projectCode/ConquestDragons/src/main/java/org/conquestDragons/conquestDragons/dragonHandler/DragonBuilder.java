@@ -13,6 +13,7 @@ import org.conquestDragons.conquestDragons.ConquestDragons;
 import org.conquestDragons.conquestDragons.dragonHandler.keyHandler.DragonGlowColorHealthKey;
 
 import java.util.Objects;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.logging.Logger;
 
 /**
@@ -26,6 +27,12 @@ import java.util.logging.Logger;
  *      - All DragonDifficultyModel knobs stored in PDC.
  *  - NOT creating any vanilla End dragon "fog" / boss battle.
  *    (Bossbars will be handled separately based on regions.)
+ *
+ *  NEW:
+ *   - Applies a small random horizontal offset around the configured spawnLocation
+ *     so multiple dragons are not stacked on the exact same block.
+ *   - Forces the dragon into a flying phase immediately so it starts moving
+ *     instead of hovering idle until damaged.
  */
 public final class DragonBuilder {
 
@@ -35,6 +42,12 @@ public final class DragonBuilder {
      *  "Health value (X) must be between 0 and 1024.0"
      */
     private static final double ENGINE_MAX_HEALTH = 1024.0;
+
+    /**
+     * Max horizontal offset (in blocks) applied randomly on X/Z
+     * around the configured spawnLocation.
+     */
+    private static final double RANDOM_SPAWN_OFFSET_BLOCKS = 4.0;
 
     private final ConquestDragons plugin;
 
@@ -76,6 +89,10 @@ public final class DragonBuilder {
      *  - All difficulty tuning knobs stored in PDC.
      *  - No vanilla End dragon boss-fog or boss battle.
      *
+     *  NEW:
+     *   - Applies a small random horizontal offset around spawnLocation.
+     *   - Immediately sets the dragon phase to CIRCLING so it starts moving.
+     *
      * @return the spawned EnderDragon instance
      */
     public EnderDragon spawn() {
@@ -86,7 +103,11 @@ public final class DragonBuilder {
             throw new IllegalStateException("spawnLocation must be set before calling spawn()");
         }
 
-        World world = spawnLocation.getWorld();
+        // ---------------------------------------------------
+        // Apply a small random horizontal offset around spawnLocation
+        // ---------------------------------------------------
+        Location finalSpawnLocation = applyRandomHorizontalOffset(spawnLocation);
+        World world = finalSpawnLocation.getWorld();
         if (world == null) {
             throw new IllegalStateException("spawnLocation has no world attached");
         }
@@ -106,18 +127,18 @@ public final class DragonBuilder {
         if (defendedMax <= 0.0) {
             // Vanilla dragon default is 200.0 – this is a sane fallback.
             defendedMax = 200.0;
-            log.warning("[ConquestDragons] DragonModel '" + model.configId()
-                    + "' reported invalid maxHealth=" + rawMaxHealth
-                    + " -> using fallback " + defendedMax + " instead.");
+//            log.warning("[ConquestDragons] DragonModel '" + model.configId()
+//                    + "' reported invalid maxHealth=" + rawMaxHealth
+//                    + " -> using fallback " + defendedMax + " instead.");
         }
 
         // Engine cap: Paper 1.21.x hard-limits health to 1024.0
         if (defendedMax > ENGINE_MAX_HEALTH) {
-            log.warning("[ConquestDragons] DragonModel '" + model.configId()
-                    + "' requested maxHealth=" + defendedMax
-                    + " which exceeds engine cap " + ENGINE_MAX_HEALTH
-                    + ". Clamping to " + ENGINE_MAX_HEALTH
-                    + " to avoid IllegalArgumentException.");
+//            log.warning("[ConquestDragons] DragonModel '" + model.configId()
+//                    + "' requested maxHealth=" + defendedMax
+//                    + " which exceeds engine cap " + ENGINE_MAX_HEALTH
+//                    + ". Clamping to " + ENGINE_MAX_HEALTH
+//                    + " to avoid IllegalArgumentException.");
             defendedMax = ENGINE_MAX_HEALTH;
         }
 
@@ -132,20 +153,34 @@ public final class DragonBuilder {
         // Difficulty (for extra visibility in logs)
         DragonDifficultyModel diff = model.difficulty();
 
-        log.info("[ConquestDragons] Spawning dragon configId=" + model.configId()
-                + ", displayName=" + model.displayName()
-                + ", requestedMaxHealth=" + rawMaxHealth
-                + ", appliedMaxHealth=" + defendedMax
-                + ", glowProfile=" + glowProfileKey
-                + ", bossbarProfile=" + bossbarProfileKey
-                + ", difficultyKey=" + (diff != null ? diff.difficultyKey() : "null")
-                + ", world=" + world.getName()
-                + ", xyz=" + spawnLocation.getBlockX() + "," + spawnLocation.getBlockY() + "," + spawnLocation.getBlockZ());
+//        log.info("[ConquestDragons] Spawning dragon configId=" + model.configId()
+//                + ", displayName=" + model.displayName()
+//                + ", requestedMaxHealth=" + rawMaxHealth
+//                + ", appliedMaxHealth=" + defendedMax
+//                + ", glowProfile=" + glowProfileKey
+//                + ", bossbarProfile=" + bossbarProfileKey
+//                + ", difficultyKey=" + (diff != null ? diff.difficultyKey() : "null")
+//                + ", world=" + world.getName()
+//                + ", xyz=" + finalSpawnLocation.getBlockX() + ","
+//                + finalSpawnLocation.getBlockY() + ","
+//                + finalSpawnLocation.getBlockZ()
+//                + " (with random offset)");
 
         // ---------------------------------------------------
         // Spawn as a standalone EnderDragon entity.
         // ---------------------------------------------------
-        EnderDragon dragon = (EnderDragon) world.spawnEntity(spawnLocation, EntityType.ENDER_DRAGON);
+        EnderDragon dragon = (EnderDragon) world.spawnEntity(finalSpawnLocation, EntityType.ENDER_DRAGON);
+
+        // ---------------------------------------------------
+        // Force the dragon to be "active" and moving
+        // ---------------------------------------------------
+        try {
+            // CIRCLING is the usual flying pattern around a point in the End.
+            // This helps avoid the "standing still until damaged" behavior.
+            dragon.setPhase(EnderDragon.Phase.CIRCLING);
+        } catch (NoSuchMethodError ignored) {
+            // In case of API differences, just fail silently.
+        }
 
         // ---------------------------------------------------
         // Identity / Name
@@ -163,8 +198,6 @@ public final class DragonBuilder {
             dragon.getAttribute(Attribute.MAX_HEALTH).setBaseValue(defendedMax);
         }
 
-        // This is where your 2500.0 was previously throwing:
-        // Paper enforces 0..1024, so we always use defendedMax here.
         dragon.setHealth(defendedMax);
 
         // Extra log just to be sure what ended up on the entity:
@@ -172,9 +205,9 @@ public final class DragonBuilder {
                 ? dragon.getAttribute(Attribute.MAX_HEALTH).getValue()
                 : dragon.getHealth();
 
-        log.info("[ConquestDragons] Spawned dragon entity=" + dragon.getUniqueId()
-                + " -> entityMaxHealth=" + finalAttr
-                + ", currentHealth=" + dragon.getHealth());
+//        log.info("[ConquestDragons] Spawned dragon entity=" + dragon.getUniqueId()
+//                + " -> entityMaxHealth=" + finalAttr
+//                + ", currentHealth=" + dragon.getHealth());
 
         // ---------------------------------------------------
         // Glow / glowProfileKey
@@ -191,7 +224,7 @@ public final class DragonBuilder {
         NamespacedKey bossbarProfilePdcKey = new NamespacedKey(plugin, "dragon_bossbar_profile");
         pdc.set(bossbarProfilePdcKey, PersistentDataType.STRING, bossbarProfileKey.name());
 
-        // Store bossbar display name (MiniMessage string so you can reconstruct Component later)
+        // Store bossbar display name (MiniMessage string)
         NamespacedKey bossbarNameKey = new NamespacedKey(plugin, "dragon_bossbar_name_mm");
         pdc.set(bossbarNameKey, PersistentDataType.STRING, model.displayName());
 
@@ -231,15 +264,27 @@ public final class DragonBuilder {
         // ---------------------------------------------------
         // No fog / no vanilla boss battle
         // ---------------------------------------------------
-        // We do NOT:
-        //  - attach this dragon to the End's DragonBattle
-        //  - create a Bukkit BossBar here
-        //
-        // DragonBossbarManager will:
-        //  - detect this dragon via EventSequenceManager + trackDragon(...)
-        //  - read 'dragon_bossbar_name_mm' & 'dragon_bossbar_profile'
-        //  - create/manage the BossBar on its own.
 
         return dragon;
+    }
+
+    /**
+     * Apply a small random horizontal offset around the base location.
+     * Y is kept identical; X/Z are perturbed within ±RANDOM_SPAWN_OFFSET_BLOCKS.
+     */
+    private static Location applyRandomHorizontalOffset(Location base) {
+        if (base == null || base.getWorld() == null) {
+            return base;
+        }
+
+        double radius = RANDOM_SPAWN_OFFSET_BLOCKS;
+        ThreadLocalRandom rnd = ThreadLocalRandom.current();
+
+        double offsetX = rnd.nextDouble(-radius, radius);
+        double offsetZ = rnd.nextDouble(-radius, radius);
+
+        Location clone = base.clone();
+        clone.add(offsetX, 0.0, offsetZ);
+        return clone;
     }
 }

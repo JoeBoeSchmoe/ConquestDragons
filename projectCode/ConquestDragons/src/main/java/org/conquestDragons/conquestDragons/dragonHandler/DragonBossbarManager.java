@@ -119,9 +119,9 @@ public final class DragonBossbarManager implements Listener {
 
         UUID id = dragon.getUniqueId();
 
-        plugin.getLogger().info("[ConquestDragons] [DragonBossbarManager] trackDragon called for event="
-                + event.id() + ", stage=" + event.currentStageKey()
-                + ", dragonUUID=" + id);
+//        plugin.getLogger().info("[ConquestDragons] [DragonBossbarManager] trackDragon called for event="
+//                + event.id() + ", stage=" + event.currentStageKey()
+//                + ", dragonUUID=" + id);
 
         // Don't double-track.
         if (tracked.containsKey(id)) {
@@ -195,8 +195,8 @@ public final class DragonBossbarManager implements Listener {
 
             // Clean up null dragons
             if (dragon == null) {
-                plugin.getLogger().info("[ConquestDragons] [DragonBossbarManager] Removing tracked dragon with null entity: "
-                        + entry.getKey());
+//                plugin.getLogger().info("[ConquestDragons] [DragonBossbarManager] Removing tracked dragon with null entity: "
+//                        + entry.getKey());
                 td.bossBar.removeAll();
                 td.bossBar.setVisible(false);
                 it.remove();
@@ -205,8 +205,8 @@ public final class DragonBossbarManager implements Listener {
 
             // Clean up dead / invalid dragons
             if (dragon.isDead() || !dragon.isValid()) {
-                plugin.getLogger().info("[ConquestDragons] [DragonBossbarManager] Tracked dragon died or became invalid: "
-                        + dragon.getUniqueId() + " (event=" + td.event.id() + ")");
+//                plugin.getLogger().info("[ConquestDragons] [DragonBossbarManager] Tracked dragon died or became invalid: "
+//                        + dragon.getUniqueId() + " (event=" + td.event.id() + ")");
 
                 // Notify EventSequenceManager for ALL event dragon deaths.
                 EventSequenceManager mgr = EventSequenceManager.getInstance();
@@ -266,9 +266,9 @@ public final class DragonBossbarManager implements Listener {
         double trigger = td.event.bellyTriggerHealthFraction();
         if (!td.bellyTriggerFired && trigger > 0.0 && trigger < 1.0 && fraction <= trigger) {
             td.bellyTriggerFired = true;
-            plugin.getLogger().info("[ConquestDragons] [DragonBossbarManager] Belly trigger fired for dragon "
-                    + dragon.getUniqueId() + " (event=" + td.event.id()
-                    + ", fraction=" + fraction + ", trigger=" + trigger + ")");
+//            plugin.getLogger().info("[ConquestDragons] [DragonBossbarManager] Belly trigger fired for dragon "
+//                    + dragon.getUniqueId() + " (event=" + td.event.id()
+//                    + ", fraction=" + fraction + ", trigger=" + trigger + ")");
             EventSequenceManager mgr = EventSequenceManager.getInstance();
             if (mgr != null) {
                 mgr.onDragonBellyTrigger(td.event, dragon, fraction);
@@ -297,8 +297,8 @@ public final class DragonBossbarManager implements Listener {
 
         // During IN_BELLY, do NOT show the HP bar at all.
         if (currentStage == EventStageKey.IN_BELLY) {
-            plugin.getLogger().fine("[ConquestDragons] [DragonBossbarManager] Hiding HP bar during IN_BELLY stage for event="
-                    + event.id());
+//            plugin.getLogger().fine("[ConquestDragons] [DragonBossbarManager] Hiding HP bar during IN_BELLY stage for event="
+//                    + event.id());
             return;
         }
 
@@ -396,12 +396,12 @@ public final class DragonBossbarManager implements Listener {
         String bossbarNameRaw = pdc.get(bossbarNameKey, PersistentDataType.STRING);
         String glowProfileRaw = pdc.get(glowProfileKey, PersistentDataType.STRING);
 
-        plugin.getLogger().info("[ConquestDragons] [DragonBossbarManager] PDC on track:"
-                + " dragonUUID=" + dragon.getUniqueId()
-                + ", event=" + event.id()
-                + ", bossbarProfileRaw=" + bossbarProfileRaw
-                + ", glowProfileRaw=" + glowProfileRaw
-                + ", bossbarNameRaw=" + bossbarNameRaw);
+//        plugin.getLogger().info("[ConquestDragons] [DragonBossbarManager] PDC on track:"
+//                + " dragonUUID=" + dragon.getUniqueId()
+//                + ", event=" + event.id()
+//                + ", bossbarProfileRaw=" + bossbarProfileRaw
+//                + ", glowProfileRaw=" + glowProfileRaw
+//                + ", bossbarNameRaw=" + bossbarNameRaw);
 
         DragonGlowColorHealthKey bossbarProfile = DragonGlowColorHealthKey.SIMPLE;
         DragonGlowColorHealthKey glowProfile = DragonGlowColorHealthKey.SIMPLE;
@@ -411,18 +411,18 @@ public final class DragonBossbarManager implements Listener {
             try {
                 bossbarProfile = DragonGlowColorHealthKey.fromConfig(bossbarProfileRaw);
             } catch (IllegalArgumentException ignored) {
-                plugin.getLogger().warning("[ConquestDragons] [DragonBossbarManager] Invalid bossbarProfileRaw '"
-                        + bossbarProfileRaw + "' for dragon " + dragon.getUniqueId()
-                        + " – falling back to SIMPLE");
+//                plugin.getLogger().warning("[ConquestDragons] [DragonBossbarManager] Invalid bossbarProfileRaw '"
+//                        + bossbarProfileRaw + "' for dragon " + dragon.getUniqueId()
+//                        + " – falling back to SIMPLE");
             }
         }
         if (glowProfileRaw != null && !glowProfileRaw.isEmpty()) {
             try {
                 glowProfile = DragonGlowColorHealthKey.fromConfig(glowProfileRaw);
             } catch (IllegalArgumentException ignored) {
-                plugin.getLogger().warning("[ConquestDragons] [DragonBossbarManager] Invalid glowProfileRaw '"
-                        + glowProfileRaw + "' for dragon " + dragon.getUniqueId()
-                        + " – falling back to SIMPLE");
+//                plugin.getLogger().warning("[ConquestDragons] [DragonBossbarManager] Invalid glowProfileRaw '"
+//                        + glowProfileRaw + "' for dragon " + dragon.getUniqueId()
+//                        + " – falling back to SIMPLE");
             }
         }
 
@@ -627,6 +627,36 @@ public final class DragonBossbarManager implements Listener {
                 };
         }
     }
+    public EventModel findEventForDragon(UUID dragonId) {
+        if (dragonId == null) {
+            return null;
+        }
+
+        TrackedDragon td = tracked.get(dragonId);
+        if (td == null) {
+            return null;
+        }
+
+        return td.event;
+    }
+
+    /**
+     * Find the EventModel that owns this dragon, or null if the dragon is
+     * not currently tracked by DragonBossbarManager.
+     */
+    public EventModel findEventForDragon(EnderDragon dragon) {
+        if (dragon == null) {
+            return null;
+        }
+
+        TrackedDragon td = tracked.get(dragon.getUniqueId());
+        if (td == null) {
+            return null;
+        }
+
+        return td.event;
+    }
+
 
     // ---------------------------------------------------
     // Glow band mapping (from band index)

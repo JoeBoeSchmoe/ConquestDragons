@@ -16,12 +16,13 @@ import java.util.UUID;
  * 🧱 EventRegionManager
  *
  * Enforces per-stage player regions for active events.
- * If a participant leaves their current stage's region, they are snapped
- * back to that stage's spawn. If the stage has no explicit StageArea,
+ *
+ * If a player (participant OR spectator) leaves their current stage's region, they
+ * are snapped back to that stage's spawn. If the stage has no explicit StageArea,
  * falls back to the global dragonRegion/dragonSpawn.
  *
  * Region enforcement is only active while:
- *   - the join window is open (LOBBY waiting), OR
+ *   - the join window is open (LOBBY) OR
  *   - the event is running combat stages (isRunning() == true).
  *
  * After the event ends and EventSequenceManager marks:
@@ -32,9 +33,9 @@ import java.util.UUID;
 public final class EventRegionManager implements Listener {
 
     /**
-     * Called whenever a player moves. If they are participating in an event
-     * and leave their current stage's region, snap them back to that stage's
-     * spawn (or dragonSpawn as a fallback).
+     * Called whenever a player moves. If they are in an event (participant or
+     * spectator) and leave that event's current stage region, snap them back
+     * to that stage's spawn (or dragonSpawn as a fallback).
      */
     @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
     public void onPlayerMove(PlayerMoveEvent event) {
@@ -52,14 +53,16 @@ public final class EventRegionManager implements Listener {
             return;
         }
 
-        // Find the event this player is currently part of
+        // Find any event this player is involved in:
+        //  - as a participant OR
+        //  - as a spectator
         EventModel currentEvent = EventManager.all().stream()
-                .filter(e -> e.isParticipant(uuid))
+                .filter(e -> e.isParticipant(uuid) || e.isSpectator(uuid))
                 .findFirst()
                 .orElse(null);
 
         if (currentEvent == null) {
-            return; // player is not in any event
+            return; // player is not in any event context
         }
 
         // ✅ Only enforce region while event is "active":

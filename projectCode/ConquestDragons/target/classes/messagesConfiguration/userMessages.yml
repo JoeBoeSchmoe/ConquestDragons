@@ -727,4 +727,155 @@ messages:
         subtitle: "<gray>You are currently in <aqua>{eventName}</aqua>.</gray>"
         timings: { fadeIn: 10, stay: 40, fadeOut: 20 }
 
+    # =========================
+    # 👁 SPECTATE JOIN MESSAGES
+    # =========================
+
+    # ✅ SUCCESSFUL SPECTATE JOIN
+    spectate-join-success:
+      text:
+        - "<aqua><bold>👁 You are now spectating a Dragon Event!</bold></aqua>"
+        - "<gray>Event:</gray> <light_purple><bold>{eventName}</bold></light_purple>"
+        - "<yellow>Enjoy the show from a safe distance.</yellow>"
+      hover: "<gray>You are now a spectator of {eventName}.</gray>"
+      click: "/dragons spectate leave"
+      clickType: "SUGGEST_COMMAND"
+      components: []
+      prefix: false
+      sound: { type: ENTITY_ENDERMAN_TELEPORT, volume: 1.0, pitch: 1.2 }
+      particles: [ { type: ENCHANTMENT_TABLE, count: 8, offset: [0.2, 0.5, 0.2], speed: 0.02 } ]
+      effects: [ { type: NIGHT_VISION, amplifier: 0, duration: 120 } ]
+      bossbar: { text: "<aqua>👁 Spectating <light_purple>{eventName}</light_purple></aqua>", color: "BLUE", overlay: "PROGRESS", time: 80, progress: 1.0 }
+      actionbar: { text: "<gray>You are now spectating <light_purple>{eventName}</light_purple>.</gray>", duration: 80 }
+      title:
+        text: "<aqua><bold>Spectate Mode Enabled</bold></aqua>"
+        subtitle: "<gray>Watching <light_purple>{eventName}</light_purple>.</gray>"
+        timings: { fadeIn: 10, stay: 40, fadeOut: 20 }
+
+    # 🔁 ALREADY SPECTATING THIS EVENT
+    spectate-join-already-spectating:
+      text:
+        - "<yellow><bold>⚠ You are already spectating a Dragon Event!</bold></yellow>"
+        - "<gray>Event:</gray> <light_purple>{eventName}</light_purple>"
+        - "<dark_gray>If you’re stuck, you can leave spectate mode.</dark_gray>"
+      hover: "<gray>You are already spectating {eventName}.</gray>"
+      click: "/dragons spectate leave"
+      clickType: "SUGGEST_COMMAND"
+      components: []
+      prefix: false
+      sound: { type: BLOCK_NOTE_BLOCK_BASS, volume: 1.0, pitch: 0.9 }
+      particles: [ { type: SPELL_WITCH, count: 5, offset: [0.2, 0.4, 0.2], speed: 0.03 } ]
+      effects: [ { type: SLOWNESS, amplifier: 0, duration: 40 } ]
+      bossbar: { text: "<yellow>Already spectating <light_purple>{eventName}</light_purple>.</yellow>", color: "YELLOW", overlay: "PROGRESS", time: 60, progress: 0.8 }
+      actionbar: { text: "<gray>You’re already spectating <light_purple>{eventName}</light_purple>.</gray>", duration: 60 }
+      title:
+        text: "<yellow><bold>Already Spectating</bold></yellow>"
+        subtitle: "<gray>Current event: <light_purple>{eventName}</light_purple>.</gray>"
+        timings: { fadeIn: 10, stay: 35, fadeOut: 15 }
+
+    # ❓ UNKNOWN EVENT / NOT AVAILABLE FOR SPECTATE
+    spectate-join-not-available:
+      text:
+        - "<red><bold>❓ You can’t spectate that Dragon Event.</bold></red>"
+        - "<gray>Event requested:</gray> <light_purple>{eventName}</light_purple>"
+        - "<yellow>It may not exist, isn’t enabled, or hasn’t started yet.</yellow>"
+      hover: "<gray>Either the event name is wrong or it isn’t running yet.</gray>"
+      click: "/dragons help"
+      clickType: "SUGGEST_COMMAND"
+      components: []
+      prefix: false
+      sound: { type: BLOCK_NOTE_BLOCK_BASS, volume: 1.0, pitch: 0.8 }
+      particles: [ { type: SMOKE_NORMAL, count: 8, offset: [0.2, 0.4, 0.2], speed: 0.02 } ]
+      effects: [ { type: SLOWNESS, amplifier: 0, duration: 40 } ]
+      bossbar: { text: "<red>Cannot spectate <light_purple>{eventName}</light_purple>.</red>", color: "RED", overlay: "PROGRESS", time: 60, progress: 0.2 }
+      actionbar: { text: "<gray>Check the event name or wait for it to start.</gray>", duration: 60 }
+      title:
+        text: "<red><bold>Spectate Unavailable</bold></red>"
+        subtitle: "<gray>The event name may be invalid or inactive.</gray>"
+        timings: { fadeIn: 10, stay: 35, fadeOut: 15 }
+
+    # ✅ SUCCESSFUL SPECTATE LEAVE
+    spectate-leave-success:
+      text:
+        - "<green><bold>✔ You stopped spectating the Dragon Event.</bold></green>"
+        - "<gray>Event:</gray> <light_purple>{eventName}</light_purple>"
+        - "<yellow>You have returned to normal play.</yellow>"
+      hover: "<gray>You are no longer spectating {eventName}.</gray>"
+      click: "/dragons spectate {eventName}"
+      clickType: "SUGGEST_COMMAND"
+      components: []
+      prefix: false
+      sound: { type: ENTITY_PLAYER_LEVELUP, volume: 1.0, pitch: 1.3 }
+      particles: [ { type: VILLAGER_HAPPY, count: 8, offset: [0.2, 0.5, 0.2], speed: 0.03 } ]
+      effects: [ { type: REGENERATION, amplifier: 0, duration: 60 } ]
+      bossbar: { text: "<green>You stopped spectating <light_purple>{eventName}</light_purple>.</green>", color: "GREEN", overlay: "PROGRESS", time: 60, progress: 1.0 }
+      actionbar: { text: "<gray>You are no longer spectating.</gray>", duration: 60 }
+      title:
+        text: "<green><bold>Spectate Mode Disabled</bold></green>"
+        subtitle: "<gray>You have left <light_purple>{eventName}</light_purple>.</gray>"
+        timings: { fadeIn: 10, stay: 40, fadeOut: 20 }
+
+    # ❌ NOT CURRENTLY SPECTATING ANY EVENT
+    spectate-leave-not-spectating:
+      text:
+        - "<red><bold>⚠ You are not spectating a Dragon Event.</bold></red>"
+        - "<gray>You can only leave spectate mode if you are currently spectating.</gray>"
+        - "<yellow>Use <gold>/dragons spectate <eventName></gold> to watch an event.</yellow>"
+      hover: "<gray>You are not in spectate mode.</gray>"
+      click: "/dragons spectate "
+      clickType: "SUGGEST_COMMAND"
+      components: []
+      prefix: false
+      sound: { type: BLOCK_NOTE_BLOCK_BASS, volume: 1.0, pitch: 0.8 }
+      particles: [ { type: SMOKE_NORMAL, count: 6, offset: [0.2, 0.4, 0.2], speed: 0.02 } ]
+      effects: [ { type: SLOWNESS, amplifier: 0, duration: 40 } ]
+      bossbar: { text: "<red>You are not spectating any event.</red>", color: "RED", overlay: "PROGRESS", time: 50, progress: 0.2 }
+      actionbar: { text: "<gray>You are not currently spectating.</gray>", duration: 50 }
+      title:
+        text: "<red><bold>Not Spectating</bold></red>"
+        subtitle: "<gray>Nothing to leave.</gray>"
+        timings: { fadeIn: 10, stay: 35, fadeOut: 15 }
+
+    # 🏆 EVENT WIN
+    event-win:
+      text:
+        - "<gold><bold>🏆 Victory!</bold></gold>"
+        - "<gray>The dragons have been defeated in</gray> <aqua>{eventName}</aqua><gray>.</gray>"
+        - "<yellow>Your courage will be remembered.</yellow>"
+      hover: "<gray>You prevailed in {eventName}.</gray>"
+      click: ""
+      clickType: "NONE"
+      components: []
+      prefix: false
+      sound: { type: ENTITY_ENDER_DRAGON_DEATH, volume: 1.0, pitch: 1.0 }
+      particles: [ { type: FIREWORK, count: 5, offset: [0.3, 0.6, 0.3], speed: 1.0 } ]
+      effects: [ { type: REGENERATION, amplifier: 1, duration: 100 } ]
+      bossbar: { text: "<gold>Victory in <yellow>{eventName}</yellow>!</gold>", color: "YELLOW", overlay: "PROGRESS", time: 70, progress: 1.0 }
+      actionbar: { text: "<green>You defeated the dragons of <yellow>{eventName}</yellow>!</green>", duration: 70 }
+      title:
+        text: "<gold><bold>Victory!</bold></gold>"
+        subtitle: "<gray>{eventName} has been secured.</gray>"
+        timings: { fadeIn: 10, stay: 40, fadeOut: 15 }
+
+    # 💀 EVENT DEFEAT
+    event-defeat:
+      text:
+        - "<red><bold>💀 Defeat...</bold></red>"
+        - "<gray>The defenders have fallen in</gray> <aqua>{eventName}</aqua><gray>.</gray>"
+        - "<dark_gray>The dragons remain undefeated — regroup and try again.</dark_gray>"
+      hover: "<gray>The dragons triumphed in {eventName}.</gray>"
+      click: ""
+      clickType: "NONE"
+      components: []
+      prefix: false
+      sound: { type: ENTITY_WITHER_SPAWN, volume: 1.0, pitch: 0.8 }
+      particles: [ { type: SMOKE_NORMAL, count: 8, offset: [0.3, 0.5, 0.3], speed: 0.02 } ]
+      effects: [ { type: WEAKNESS, amplifier: 0, duration: 60 } ]
+      bossbar: { text: "<red>Defeat in <yellow>{eventName}</yellow>.</red>", color: "RED", overlay: "PROGRESS", time: 70, progress: 0.0 }
+      actionbar: { text: "<red>The dragons overwhelmed <yellow>{eventName}</yellow>.</red>", duration: 70 }
+      title:
+        text: "<dark_red><bold>Defeat...</bold></dark_red>"
+        subtitle: "<gray>Return stronger and challenge them again.</gray>"
+        timings: { fadeIn: 10, stay: 40, fadeOut: 15 }
+
 # End Of Config :)

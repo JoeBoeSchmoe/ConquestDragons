@@ -10,10 +10,12 @@ import org.bukkit.event.Listener;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.conquestDragons.conquestDragons.commandHandler.CommandManager;
 import org.conquestDragons.conquestDragons.configurationHandler.ConfigurationManager;
+import org.conquestDragons.conquestDragons.eventHandler.EventDeathListener;
 import org.conquestDragons.conquestDragons.eventHandler.EventManager;
 import org.conquestDragons.conquestDragons.eventHandler.EventModel;
 import org.conquestDragons.conquestDragons.eventHandler.EventSequenceManager;
 import org.conquestDragons.conquestDragons.listenerHandler.CommandRestrictionListener;
+import org.conquestDragons.conquestDragons.listenerHandler.DragonDamageListener;
 import org.conquestDragons.conquestDragons.listenerHandler.EventRegionManager;
 
 import java.util.*;
@@ -59,7 +61,9 @@ public final class ConquestDragons extends JavaPlugin {
                 // new ClanChatListener()
                 // new RegionGuardListener()
                 new CommandRestrictionListener(),
-                new EventRegionManager()
+                new EventRegionManager(),
+                new EventDeathListener(),
+                new DragonDamageListener()
         );
 
         // ---------------------------------------------------

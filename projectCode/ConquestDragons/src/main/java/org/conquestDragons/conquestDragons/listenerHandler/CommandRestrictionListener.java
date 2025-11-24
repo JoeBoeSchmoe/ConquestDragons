@@ -1,5 +1,6 @@
 package org.conquestDragons.conquestDragons.listenerHandler;
 
+import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -9,7 +10,6 @@ import org.conquestDragons.conquestDragons.eventHandler.EventManager;
 import org.conquestDragons.conquestDragons.eventHandler.EventModel;
 import org.conquestDragons.conquestDragons.responseHandler.MessageResponseManager;
 import org.conquestDragons.conquestDragons.responseHandler.messageModels.UserMessageModels;
-import org.bukkit.configuration.file.FileConfiguration;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -21,7 +21,7 @@ public final class CommandRestrictionListener implements Listener {
 
     private final boolean whitelistEnabled;
     private final Set<String> globalWhitelist;
-    private final Set<String> duelWhitelist;
+    private final Set<String> participantWhitelist;
     private final Set<String> spectatorWhitelist;
 
     public CommandRestrictionListener() {
@@ -41,9 +41,12 @@ public final class CommandRestrictionListener implements Listener {
         this.globalWhitelist = normalizeCommands(
                 config.getStringList("command-restrictions.global-whitelist")
         );
-        this.duelWhitelist = normalizeCommands(
-                config.getStringList("command-restrictions.duel-whitelist")
+
+        // 🔧 match YAML: command-restrictions.participant-whitelist
+        this.participantWhitelist = normalizeCommands(
+                config.getStringList("command-restrictions.participant-whitelist")
         );
+
         this.spectatorWhitelist = normalizeCommands(
                 config.getStringList("command-restrictions.spectator-whitelist")
         );
@@ -63,6 +66,44 @@ public final class CommandRestrictionListener implements Listener {
         return out;
     }
 
+    /**
+     * Helper to decide if a command should be allowed given a whitelist.
+     *
+     * Supports:
+     *  - Exact base command match ("/dragons")
+     *  - Exact full command match ("/dragons spectate leave")
+     *  - Prefix match, e.g. whitelist "/dragons" → allows "/dragons spectate leave"
+     */
+    private boolean isWhitelisted(Set<String> whitelist,
+                                  String baseCommand,
+                                  String fullMessageLower) {
+        if (whitelist == null || whitelist.isEmpty()) {
+            return false;
+        }
+
+        // Exact base-command match
+        if (whitelist.contains(baseCommand)) {
+            return true;
+        }
+
+        // Exact full-line match (e.g. "/dragons spectate leave")
+        if (whitelist.contains(fullMessageLower)) {
+            return true;
+        }
+
+        // Prefix match: "/dragons" in whitelist → allows "/dragons spectate leave"
+        for (String allowed : whitelist) {
+            if (fullMessageLower.equals(allowed)) {
+                return true;
+            }
+            if (fullMessageLower.startsWith(allowed + " ")) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     @EventHandler(ignoreCancelled = true)
     public void onPlayerCommand(PlayerCommandPreprocessEvent event) {
         if (!whitelistEnabled) {
@@ -79,17 +120,19 @@ public final class CommandRestrictionListener implements Listener {
             }
         }
 
-        String msg = event.getMessage();          // e.g. "/home bed"
+        String msg = event.getMessage();          // e.g. "/dragons spectate leave"
         if (msg == null || msg.isBlank()) return;
 
-        String[] split = msg.split("\\s+");
+        String fullLower = msg.trim().toLowerCase(Locale.ROOT);
+
+        String[] split = fullLower.split("\\s+");
         if (split.length == 0) return;
 
-        // Base command (with leading slash, normalized)
-        String baseCommand = split[0].toLowerCase(Locale.ROOT); // "/home"
+        // Base command (with leading slash, normalized) e.g. "/dragons"
+        String baseCommand = split[0]; // already lowercased above
 
         // Global whitelist – always allowed
-        if (globalWhitelist.contains(baseCommand)) {
+        if (isWhitelisted(globalWhitelist, baseCommand, fullLower)) {
             return;
         }
 
@@ -102,15 +145,15 @@ public final class CommandRestrictionListener implements Listener {
         // Decide which role-specific whitelist to use
         Set<String> roleWhitelist;
         if (context.participant()) {
-            roleWhitelist = duelWhitelist;
+            roleWhitelist = participantWhitelist;
         } else if (context.spectator()) {
             roleWhitelist = spectatorWhitelist;
         } else {
             roleWhitelist = Collections.emptySet();
         }
 
-        // If the role whitelist contains this command, allow it
-        if (roleWhitelist.contains(baseCommand)) {
+        // If the role whitelist allows this command, let it pass
+        if (isWhitelisted(roleWhitelist, baseCommand, fullLower)) {
             return;
         }
 

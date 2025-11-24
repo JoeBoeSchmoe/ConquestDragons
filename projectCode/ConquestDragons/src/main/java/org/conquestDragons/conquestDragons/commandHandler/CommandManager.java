@@ -36,11 +36,11 @@ public class CommandManager implements CommandExecutor, TabCompleter {
         ALIAS_MAP.put("help", "help");
         ALIAS_MAP.put("h", "help");
 
-        // (Add more user-facing roots as you implement them)
-        // ALIAS_MAP.put("create", "create");
-        // ALIAS_MAP.put("invite", "invite");
         ALIAS_MAP.put("join", "join");
+
         ALIAS_MAP.put("leave", "leave");
+
+        ALIAS_MAP.put("spectate", "spectate");
 
         // Admin group root
         ALIAS_MAP.put("admin", "admin");

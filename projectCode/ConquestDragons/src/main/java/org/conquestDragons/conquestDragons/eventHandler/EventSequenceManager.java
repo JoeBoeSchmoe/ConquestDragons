@@ -1,6 +1,7 @@
 package org.conquestDragons.conquestDragons.eventHandler;
 
 import org.bukkit.Bukkit;
+import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.EnderDragon;
@@ -36,6 +37,10 @@ import java.util.logging.Level;
  *  - Coordinates transition into IN_BELLY stage when dragons hit belly health threshold.
  *  - Drives IN_BELLY duration and transitions players to POST_BELLY.
  *  - After all non-boss dragons are dead, starts FINAL stage and summons the boss dragon.
+ *
+ *  - NEW:
+ *      • When boss dies and event completes → global victory message + participants/spectators to completionSpawn.
+ *      • If participants reach 0 before completion → global defeat message + spectators ejected after same delay.
  */
 public final class EventSequenceManager {
 
@@ -46,10 +51,12 @@ public final class EventSequenceManager {
     private static EventSequenceManager INSTANCE;
 
     // 3 seconds (60 ticks) delay for stage-related teleports
-    private static final long STAGE_TELEPORT_DELAY_TICKS = 60L;
+    private static final long STAGE_TELEPORT_DELAY_TICKS = 100L;
 
     // Slight delay before swallowing players into the belly arena
-    private static final long BELLY_TELEPORT_DELAY_TICKS = 60L;
+    private static final long BELLY_TELEPORT_DELAY_TICKS = 100L;
+
+
     public static EventSequenceManager getInstance() {
         return INSTANCE;
     }
@@ -79,12 +86,14 @@ public final class EventSequenceManager {
     /**
      * Stop the manager and clear all runtime state.
      */
-    public static synchronized void stop() {
-        if (INSTANCE == null) return;
+    public static synchronized EventSequenceManager stop() {
+        if (INSTANCE == null) return null;
         INSTANCE.stopTickTask();
         INSTANCE.runsByEventId.clear();
-        INSTANCE.plugin.getLogger().info("✅  EventSequenceManager stopped.");
+        ConquestDragons.getInstance().getLogger().info("✅  EventSequenceManager stopped.");
+        EventSequenceManager old = INSTANCE;
         INSTANCE = null;
+        return old;
     }
 
     // ---------------------------------------------------
@@ -222,6 +231,9 @@ public final class EventSequenceManager {
 
         // 5) Per-stage timed commands + repeat messages + INITIAL dragon spawns + belly timing
         tickStages(event, run, now);
+
+        // 6) Early defeat check: if participants drop to 0 before we complete, we lose.
+        checkForEarlyDefeat(event, run);
     }
 
     // ---------------------------------------------------
@@ -265,20 +277,6 @@ public final class EventSequenceManager {
     /**
      * Called by DragonBossbarManager when a dragon for this event crosses the
      * belly trigger health fraction.
-     *
-     * Flow:
-     *  - First dragon to cross the threshold while INITIAL is running:
-     *      • Ends INITIAL
-     *      • Switches event.currentStageKey → IN_BELLY
-     *      • Starts IN_BELLY (commands, messages, timers)
-     *      • Starts InBellyBossbarManager
-     *      • Eats its share of players
-     *
-     *  - Subsequent dragons crossing the threshold while IN_BELLY is active:
-     *      • Do NOT restart the stage
-     *      • Still eat their share of remaining players
-     *
-     *  - Once IN_BELLY is ended (by duration timeout), further triggers are ignored.
      */
     public void onDragonBellyTrigger(EventModel event,
                                      EnderDragon dragon,
@@ -295,10 +293,6 @@ public final class EventSequenceManager {
         // ----------------------------------------------------
         // Stage guard logic
         // ----------------------------------------------------
-        // Before IN_BELLY has started:
-        //   - we only allow a trigger while INITIAL is running.
-        // After IN_BELLY has started:
-        //   - we only allow triggers while IN_BELLY is still running.
         if (!run.inBellyStageStarted) {
             // We haven't entered IN_BELLY yet → INITIAL must be running.
             ScheduledRun.StageRuntime initialRt = run.getStageRuntime(EventStageKey.INITIAL);
@@ -322,10 +316,11 @@ public final class EventSequenceManager {
 
             long delay = BELLY_TELEPORT_DELAY_TICKS;
 
-            plugin.getLogger().info("[ConquestDragons] Scheduling IN_BELLY stage start in "
-                    + (delay / 20.0) + "s for event '" + event.id()
-                    + "' due to dragon " + dragon.getUniqueId()
-                    + " (healthFraction=" + healthFraction + ")");
+            // DEBUG:
+            // plugin.getLogger().info("[ConquestDragons] Scheduling IN_BELLY stage start in "
+            //         + (delay / 20.0) + "s for event '" + event.id()
+            //         + "' due to dragon " + dragon.getUniqueId()
+            //         + " (healthFraction=" + healthFraction + ")");
 
             Bukkit.getScheduler().runTaskLater(plugin, () -> {
                 // Re-fetch current run in case things changed.
@@ -354,9 +349,10 @@ public final class EventSequenceManager {
                     bellyMgr.startInBellyBar(event);
                 }
 
-                plugin.getLogger().info("[ConquestDragons] IN_BELLY stage started for event '"
-                        + event.id() + "' after delay due to dragon " + dragon.getUniqueId()
-                        + " (healthFraction=" + healthFraction + ")");
+                // DEBUG:
+                // plugin.getLogger().info("[ConquestDragons] IN_BELLY stage started for event '"
+                //         + event.id() + "' after delay due to dragon " + dragon.getUniqueId()
+                //         + " (healthFraction=" + healthFraction + ")");
             }, BELLY_TELEPORT_DELAY_TICKS);
         }
 
@@ -370,20 +366,30 @@ public final class EventSequenceManager {
 
         int totalParticipants = participants.size();
 
-        // Ask bossbar manager how many dragons are currently alive for this event.
-        DragonBossbarManager bossMgr = DragonBossbarManager.getInstance();
-        int activeDragonCount = 1;
-        if (bossMgr != null) {
-            activeDragonCount = bossMgr.countActiveDragonsForEvent(event);
-        }
-        if (activeDragonCount <= 0) {
-            activeDragonCount = 1; // safety
-        }
+        // Determine how many players each dragon is allowed to eat for THIS run.
+        int playersPerDragon;
 
-        // Example: 2 dragons, 20 players → ceil(20/2) = 10 per dragon.
-        int playersPerDragon = (int) Math.ceil(totalParticipants / (double) activeDragonCount);
-        if (playersPerDragon <= 0) {
-            playersPerDragon = 1;
+        if (run.bellyPlayersPerDragon != null) {
+            // Reuse the same per-dragon cap for all subsequent belly triggers.
+            playersPerDragon = run.bellyPlayersPerDragon;
+        } else {
+            // First time we are computing the cap.
+            DragonBossbarManager bossMgr = DragonBossbarManager.getInstance();
+            int activeDragonCount = 1;
+            if (bossMgr != null) {
+                activeDragonCount = bossMgr.countActiveDragonsForEvent(event);
+            }
+            if (activeDragonCount <= 0) {
+                activeDragonCount = 1; // safety
+            }
+
+            // Example: 2 dragons, 20 players → ceil(20/2) = 10 per dragon.
+            playersPerDragon = (int) Math.ceil(totalParticipants / (double) activeDragonCount);
+            if (playersPerDragon <= 0) {
+                playersPerDragon = 1;
+            }
+
+            run.bellyPlayersPerDragon = playersPerDragon;
         }
 
         // Build list of candidates: participants not already teleported into belly.
@@ -400,7 +406,6 @@ public final class EventSequenceManager {
         // Shuffle for fairness/randomness
         Collections.shuffle(candidates);
 
-        int toTake = Math.min(playersPerDragon, candidates.size());
         Location bellySpawn = resolveInBellyStageSpawn(event);
         if (bellySpawn == null) {
             plugin.getLogger().warning("[ConquestDragons] No IN_BELLY spawn configured for event '"
@@ -415,6 +420,17 @@ public final class EventSequenceManager {
                 k -> ConcurrentHashMap.newKeySet()
         );
 
+        // How many more players this dragon is allowed to eat based on its cap
+        int alreadyEaten = eatenByDragon.size();
+        int remainingCapacity = playersPerDragon - alreadyEaten;
+        if (remainingCapacity <= 0) {
+            // This dragon has already reached its belly quota.
+            return;
+        }
+
+        // Decide how many to actually take this trigger.
+        int toTake = Math.min(remainingCapacity, candidates.size());
+
         for (int i = 0; i < toTake; i++) {
             UUID uuid = candidates.get(i);
             run.inBellyParticipants.add(uuid);
@@ -427,14 +443,12 @@ public final class EventSequenceManager {
             }
         }
 
-
-
-        plugin.getLogger().info("[ConquestDragons] Dragon " + dragon.getUniqueId()
-                + " pulled " + toTake + " players into IN_BELLY for event '" + event.id()
-                + "' (playersPerDragon=" + playersPerDragon
-                + ", activeDragons=" + activeDragonCount + ")");
+        // DEBUG:
+        // plugin.getLogger().info("[ConquestDragons] Dragon " + dragon.getUniqueId()
+        //         + " pulled " + toTake + " players into IN_BELLY for event '" + event.id()
+        //         + "' (playersPerDragon=" + playersPerDragon
+        //         + ", activeDragons=" + activeDragonCount + ")");
     }
-
 
     // ---------------------------------------------------
     // Dragon killed callback (from DragonBossbarManager)
@@ -442,12 +456,6 @@ public final class EventSequenceManager {
 
     /**
      * Called when an event dragon dies.
-     *
-     * If we're still in the IN_BELLY stage and this dragon had eaten players,
-     * we prematurely free those players into POST_BELLY.
-     *
-     * After that, we also check whether there are any non-boss dragons left.
-     * If not, we begin the FINAL stage and spawn the boss dragon.
      */
     public void onDragonKilled(EventModel event, EnderDragon dragon) {
         if (event == null || dragon == null) {
@@ -482,9 +490,10 @@ public final class EventSequenceManager {
                         }
                     }
 
-                    plugin.getLogger().info("[ConquestDragons] Dragon " + dragon.getUniqueId()
-                            + " was killed early; freed " + moved
-                            + " belly player(s) into POST_BELLY spawn for event '" + event.id() + "'.");
+                    // DEBUG:
+                    // plugin.getLogger().info("[ConquestDragons] Dragon " + dragon.getUniqueId()
+                    //         + " was killed early; freed " + moved
+                    //         + " belly player(s) into POST_BELLY spawn for event '" + event.id() + "'.");
                 }
             }
         }
@@ -495,7 +504,6 @@ public final class EventSequenceManager {
         // ----------------------------------------------------
         // If the FINAL boss has already been spawned and now
         // there are NO dragons left, the event is over.
-        // → End FINAL stage + teleport everyone to completionSpawn.
         // ----------------------------------------------------
         DragonBossbarManager mgr = DragonBossbarManager.getInstance();
         int remaining = (mgr != null) ? mgr.countActiveDragonsForEvent(event) : 0;
@@ -509,47 +517,66 @@ public final class EventSequenceManager {
 
     /**
      * Called once the FINAL boss dragon has been killed and no dragons remain.
-     * Ends the FINAL stage, teleports all players out, and fully clears the
-     * runtime state for this event run (no participants, no spectators).
      */
     private void completeEventAfterBossDeath(EventModel event, ScheduledRun run) {
-        // Avoid double-completion if FINAL is already ended
+        if (run == null) {
+            return;
+        }
+
+        // Avoid double-completion if FINAL is already ended or result already resolved
+        if (run.resultResolved) {
+            return;
+        }
+
         ScheduledRun.StageRuntime finalRt = run.getStageRuntime(EventStageKey.FINAL);
         if (finalRt != null && finalRt.ended) {
             return;
         }
 
+        run.resultResolved = true;
+
         // End FINAL stage (runs FINAL end-commands + FINAL_STAGE_END user message)
         endStage(event, run, EventStageKey.FINAL);
 
-        // Teleport participants to completionSpawn, if configured
+        // 🔔 Global victory announcement
+        broadcastEventResult(event, true);
+
+        // 🎁 Event rewards (completion + ranking)
+        EventRewardExecutor.grantCompletionRewards(event);
+        EventRewardExecutor.grantRankingRewards(event, 10);
+
+        // Teleport participants and spectators to completionSpawn, if configured
         Location completion = event.completionSpawn();
         int movedParticipants = 0;
         int movedSpectators = 0;
 
         if (completion != null) {
             // Participants
-            for (UUID uuid : event.participantsSnapshot()) {
-                Player p = Bukkit.getPlayer(uuid);
-                if (p != null && p.isOnline()) {
-                    scheduleStageTeleport(uuid, completion);
-                    movedParticipants++;
-                }
-            }
-
-            // Spectators (if you track those separately)
-            if (event.spectatorsSnapshot() != null) {
-                for (UUID uuid : event.spectatorsSnapshot()) {
+            Collection<UUID> participants = event.participantsSnapshot();
+            if (participants != null) {
+                for (UUID uuid : participants) {
                     Player p = Bukkit.getPlayer(uuid);
                     if (p != null && p.isOnline()) {
                         scheduleStageTeleport(uuid, completion);
+                        movedParticipants++;
+                    }
+                }
+            }
+
+            // Spectators
+            Collection<UUID> spectators = event.spectatorsSnapshot();
+            if (spectators != null) {
+                for (UUID uuid : spectators) {
+                    Player p = Bukkit.getPlayer(uuid);
+                    if (p != null && p.isOnline()) {
+                        scheduleSpectatorCompletionTeleport(uuid, completion);
                         movedSpectators++;
                     }
                 }
             }
 
             plugin.getLogger().info("[ConquestDragons] Event '" + event.id()
-                    + "' completed. Teleporting " + movedParticipants
+                    + "' completed (VICTORY). Teleporting " + movedParticipants
                     + " participant(s) and " + movedSpectators
                     + " spectator(s) to completionSpawn at "
                     + formatLocation(completion) + " after "
@@ -557,7 +584,7 @@ public final class EventSequenceManager {
         } else {
             plugin.getLogger().warning(
                     "[ConquestDragons] Event '" + event.id()
-                            + "' completed but has no completionSpawn configured; players will not be teleported."
+                            + "' completed (VICTORY) but has no completionSpawn configured; players will not be teleported."
             );
         }
 
@@ -566,13 +593,66 @@ public final class EventSequenceManager {
     }
 
     /**
-     * Hard-ends the current game run for the given event:
-     *  - Marks event as not running and not joinable
-     *  - Clears participants and spectators runtime sets
-     *  - Clears in-belly tracking from this ScheduledRun
-     *  - Removes the ScheduledRun from runsByEventId
-     *
-     * After this, from a runtime perspective, the duel/game is gone.
+     * Early-loss path.
+     */
+    private void handleEarlyDefeat(EventModel event, ScheduledRun run) {
+        if (event == null || run == null) {
+            return;
+        }
+        if (run.resultResolved) {
+            return;
+        }
+
+        run.resultResolved = true;
+
+        // DEBUG:
+        // plugin.getLogger().info("[ConquestDragons] Event '" + event.id()
+        //         + "' reached 0 participants before completion. Marking as DEFEAT.");
+
+        // End any currently running stages cleanly (run end-commands + messages).
+        for (EventStageKey key : EventStageKey.values()) {
+            ScheduledRun.StageRuntime rt = run.getStageRuntime(key);
+            if (rt != null && rt.started && !rt.ended) {
+                endStage(event, run, key);
+            }
+        }
+
+        // 🔔 Global defeat announcement
+        broadcastEventResult(event, false);
+
+        Location completion = event.completionSpawn();
+        int movedSpectators = 0;
+
+        if (completion != null) {
+            Collection<UUID> spectators = event.spectatorsSnapshot();
+            if (spectators != null) {
+                for (UUID uuid : spectators) {
+                    Player p = Bukkit.getPlayer(uuid);
+                    if (p != null && p.isOnline()) {
+                        scheduleSpectatorCompletionTeleport(uuid, completion);
+                        movedSpectators++;
+                    }
+                }
+            }
+
+            plugin.getLogger().info("[ConquestDragons] Event '" + event.id()
+                    + "' DEFEAT. Teleporting " + movedSpectators
+                    + " remaining spectator(s) to completionSpawn at "
+                    + formatLocation(completion) + " after "
+                    + (STAGE_TELEPORT_DELAY_TICKS / 20.0) + "s.");
+        } else {
+            plugin.getLogger().warning(
+                    "[ConquestDragons] Event '" + event.id()
+                            + "' DEFEAT but has no completionSpawn configured; spectators will not be teleported."
+            );
+        }
+
+        // Fully tear down this game run.
+        fullyEndEvent(event, run);
+    }
+
+    /**
+     * Hard-ends the current game run for the given event.
      */
     private void fullyEndEvent(EventModel event, ScheduledRun run) {
         if (event == null) {
@@ -584,17 +664,14 @@ public final class EventSequenceManager {
         event.setJoinWindowOpen(false);
 
         // Clear participants and spectators from the runtime model
-        // (adjust method names if your EventModel uses different ones)
         try {
             event.clearParticipants();
         } catch (NoSuchMethodError ignored) {
-            // If you haven't implemented this yet, just add it to EventModel
         }
 
         try {
             event.clearSpectators();
         } catch (NoSuchMethodError ignored) {
-            // Same as above – implement in EventModel
         }
 
         // Clear any in-belly tracking from this run instance
@@ -605,17 +682,15 @@ public final class EventSequenceManager {
             run.inBellyStageStarted = false;
         }
 
-        // Remove this run from the per-event runtime map so the next cycle
-        // will schedule a fresh run if/when the schedule comes around again.
+        // Remove this run from the per-event runtime map
         runsByEventId.remove(event.id());
 
         plugin.getLogger().info("[ConquestDragons] Event '" + event.id()
                 + "' fully ended. Participants, spectators, and runtime state cleared.");
     }
 
-
     /**
-     * If no dragons remain for this event and the boss hasn't been spawned yet,
+     * If no dragons remain and the boss hasn't been spawned yet,
      * transition into FINAL stage and summon the boss dragon.
      */
     private void maybeStartFinalStageIfNoDragons(EventModel event, ScheduledRun run) {
@@ -645,16 +720,15 @@ public final class EventSequenceManager {
             endStage(event, run, EventStageKey.INITIAL);
         }
 
-        // ----------------------------------------------------
         // FINAL stage player spawn (arena where players go)
-        // ----------------------------------------------------
         Location finalSpawn = resolveFinalStageSpawn(event);
         if (finalSpawn != null) {
-            plugin.getLogger().info(
-                    "[ConquestDragons] Teleporting participants of event '" + event.id() +
-                            "' to FINAL stage spawn at " + formatLocation(finalSpawn) +
-                            " in " + (STAGE_TELEPORT_DELAY_TICKS / 20.0) + "s."
-            );
+            // DEBUG:
+            // plugin.getLogger().info(
+            //         "[ConquestDragons] Teleporting participants of event '" + event.id() +
+            //                 "' to FINAL stage spawn at " + formatLocation(finalSpawn) +
+            //                 " in " + (STAGE_TELEPORT_DELAY_TICKS / 20.0) + "s."
+            // );
 
             for (UUID uuid : event.participantsSnapshot()) {
                 scheduleStageTeleport(uuid, finalSpawn);
@@ -666,20 +740,16 @@ public final class EventSequenceManager {
             );
         }
 
-        // ----------------------------------------------------
-        // Boss spawn location:
-        //   Prefer dedicated dragon-spawn (event.dragonSpawn()),
-        //   FALL BACK to finalSpawn, then last fallback to dragonSpawn() again.
-        // ----------------------------------------------------
+        // Boss spawn location
         Location bossSpawnLoc = event.dragonSpawn();  // from YAML
 
         if (bossSpawnLoc != null) {
-            plugin.getLogger().info(
-                    "[ConquestDragons] Boss dragon for event '" + event.id() +
-                            "' will use dedicated dragon-spawn at " + formatLocation(bossSpawnLoc)
-            );
+            // DEBUG:
+            // plugin.getLogger().info(
+            //         "[ConquestDragons] Boss dragon for event '" + event.id() +
+            //                 "' will use dedicated dragon-spawn at " + formatLocation(bossSpawnLoc)
+            // );
         } else if (finalSpawn != null) {
-            // Fallback: at least don't spawn at null
             bossSpawnLoc = finalSpawn;
             plugin.getLogger().warning(
                     "[ConquestDragons] Event '" + event.id() +
@@ -687,7 +757,6 @@ public final class EventSequenceManager {
                             formatLocation(bossSpawnLoc)
             );
         } else {
-            // Absolute safety: nothing to use
             plugin.getLogger().warning(
                     "[ConquestDragons] No valid spawn location (dragon-spawn or FINAL spawn) " +
                             "for boss dragon in event '" + event.id() + "'. Boss will NOT be spawned."
@@ -699,15 +768,16 @@ public final class EventSequenceManager {
         event.setCurrentStageKey(EventStageKey.FINAL);
         startStage(event, run, EventStageKey.FINAL, now);
 
-        // Summon the boss dragon using the configured boss-dragon-id at bossSpawnLoc
+        // Summon the boss dragon
         spawnBossDragon(event, bossSpawnLoc);
 
         run.bossSpawned = true;
 
-        plugin.getLogger().info(
-                "[ConquestDragons] All non-boss dragons defeated for event '" + event.id() +
-                        "'. FINAL stage started and boss dragon summoned at " + formatLocation(bossSpawnLoc)
-        );
+        // DEBUG:
+        // plugin.getLogger().info(
+        //         "[ConquestDragons] All non-boss dragons defeated for event '" + event.id() +
+        //                 "'. FINAL stage started and boss dragon summoned at " + formatLocation(bossSpawnLoc)
+        // );
     }
 
     private static String formatLocation(Location loc) {
@@ -725,7 +795,6 @@ public final class EventSequenceManager {
                 + ",pitch=" + loc.getPitch();
     }
 
-
     // ---------------------------------------------------
     // Join-window hooks
     // ---------------------------------------------------
@@ -741,12 +810,6 @@ public final class EventSequenceManager {
         broadcastUserMessage(UserMessageModels.EVENT_COUNTDOWN, placeholders);
     }
 
-    /**
-     * Join window opens:
-     * - event.joinWindowOpen = true
-     * - currentStageKey = LOBBY
-     * - LOBBY stage started
-     */
     private void onJoinWindowOpened(EventModel event, ScheduledRun run) {
         event.setJoinWindowOpen(true);
         event.setRunning(false); // not "combat live" yet
@@ -784,13 +847,7 @@ public final class EventSequenceManager {
     }
 
     /**
-     * Join window ends:
-     * - joinWindowOpen = false
-     * - running = true
-     * - currentStageKey = INITIAL
-     * - LOBBY end-commands
-     * - INITIAL start-commands + timers
-     * - participants teleported into INITIAL arena
+     * Join window ends → INITIAL stage begins.
      */
     private void onJoinWindowEnded(EventModel event, ScheduledRun run) {
         event.setJoinWindowOpen(false);
@@ -800,7 +857,7 @@ public final class EventSequenceManager {
         // End the LOBBY stage (end-commands + end message)
         endStage(event, run, EventStageKey.LOBBY);
 
-        // Teleport all participants into the INITIAL stage arena (3s delay)
+        // Teleport all participants into the INITIAL stage arena (delayed)
         Location initialSpawn = resolveInitialStageSpawn(event);
         if (initialSpawn != null) {
             for (UUID uuid : event.participantsSnapshot()) {
@@ -838,6 +895,27 @@ public final class EventSequenceManager {
     }
 
     /**
+     * Spectator completion teleport helper:
+     *  - Teleports the player to the given target.
+     *  - If they are currently in SPECTATOR, restores them to SURVIVAL.
+     */
+    private void scheduleSpectatorCompletionTeleport(UUID uuid, Location target) {
+        if (target == null) {
+            return;
+        }
+
+        Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            Player p = Bukkit.getPlayer(uuid);
+            if (p != null && p.isOnline()) {
+                if (p.getGameMode() == GameMode.SPECTATOR) {
+                    p.setGameMode(GameMode.SURVIVAL);
+                }
+                p.teleport(target);
+            }
+        }, STAGE_TELEPORT_DELAY_TICKS);
+    }
+
+    /**
      * Start a logical stage for this run.
      */
     private void startStage(EventModel event,
@@ -858,13 +936,14 @@ public final class EventSequenceManager {
 
         runtime.started = true;
 
-        plugin.getLogger().info("[ConquestDragons] Starting stage " + key
-                + " for event " + event.id()
-                + " (timedCommands=" + runtime.timedCommands.size()
-                + ", hasRepeatMessage=" + (runtime.repeatMessage != null) + ")");
+        // DEBUG:
+        // plugin.getLogger().info("[ConquestDragons] Starting stage " + key
+        //         + " for event " + event.id()
+        //         + " (timedCommands=" + runtime.timedCommands.size()
+        //         + ", hasRepeatMessage=" + (runtime.repeatMessage != null) + ")");
 
         // Stage START console commands
-        executeCommands(runtime.model.startCommands());
+        executeStageCommands(event, key, runtime.model.startCommands());
 
         // Stage START user message
         sendStageStartMessage(event, key);
@@ -889,11 +968,12 @@ public final class EventSequenceManager {
 
         runtime.ended = true;
 
-        plugin.getLogger().info("[ConquestDragons] Ending stage " + key
-                + " for event " + event.id());
+        // DEBUG:
+        // plugin.getLogger().info("[ConquestDragons] Ending stage " + key
+        //         + " for event " + event.id());
 
-        // Stage END console commands
-        executeCommands(runtime.model.endCommands());
+        // Stage END console commands (supports {player})
+        executeStageCommands(event, key, runtime.model.endCommands());
 
         // Stage END user message
         sendStageEndMessage(event, key);
@@ -913,19 +993,22 @@ public final class EventSequenceManager {
                 if (!batch.executed && !now.isBefore(batch.fireInstant)) {
                     batch.executed = true;
 
-                    plugin.getLogger().info("[ConquestDragons] Executing timed-commands for stage "
-                            + runtime.stageKey + " (event=" + event.id()
-                            + ", commands=" + batch.commands.size() + ")");
+                    // DEBUG:
+                    // plugin.getLogger().info("[ConquestDragons] Executing timed-commands for stage "
+                    //         + runtime.stageKey + " (event=" + event.id()
+                    //         + ", commands=" + batch.commands.size() + ")");
 
-                    executeCommands(batch.commands);
+                    // Now supports {player} – per-stage, per-player expansion
+                    executeStageCommands(event, runtime.stageKey, batch.commands);
                 }
             }
 
             // 2) Repeat stage message (looping while stage active)
             ScheduledRun.RepeatMessageState rm = runtime.repeatMessage;
             if (rm != null && rm.nextFireInstant != null && !now.isBefore(rm.nextFireInstant)) {
-                plugin.getLogger().info("[ConquestDragons] Firing repeat stage message for stage "
-                        + runtime.stageKey + " (event=" + event.id() + ")");
+                // DEBUG:
+                // plugin.getLogger().info("[ConquestDragons] Firing repeat stage message for stage "
+                //         + runtime.stageKey + " (event=" + event.id() + ")");
 
                 sendStageTimedMessage(event, runtime.stageKey);
 
@@ -947,6 +1030,9 @@ public final class EventSequenceManager {
 
     /**
      * Handle the configured IN_BELLY duration for remaining belly players.
+     *
+     * IMPORTANT: For this transition we now teleport players INSTANTLY
+     * (no STAGE_TELEPORT_DELAY_TICKS) to sync with your countdown.
      */
     private void tickInBellyDuration(EventModel event, ScheduledRun run, Instant now) {
         // If event has no configured belly duration, do nothing.
@@ -978,11 +1064,12 @@ public final class EventSequenceManager {
         endStage(event, run, EventStageKey.IN_BELLY);
 
         // Teleport all players we still consider "in belly".
+        // NOTE: This is now an INSTANT teleport, not delayed via scheduleStageTeleport.
         int moved = 0;
         for (UUID uuid : new ArrayList<>(run.inBellyParticipants)) {
             Player p = Bukkit.getPlayer(uuid);
             if (p != null && p.isOnline()) {
-                scheduleStageTeleport(uuid, postBellySpawn);
+                p.teleport(postBellySpawn); // instant move on countdown completion
                 moved++;
             }
         }
@@ -999,8 +1086,9 @@ public final class EventSequenceManager {
             bellyMgr.stopInBellyBar(event);
         }
 
-        plugin.getLogger().info("[ConquestDragons] IN_BELLY duration ended for event '"
-                + event.id() + "'. Moved " + moved + " player(s) into POST_BELLY.");
+        // DEBUG:
+        // plugin.getLogger().info("[ConquestDragons] IN_BELLY duration ended for event '"
+        //         + event.id() + "'. Moved " + moved + " player(s) into POST_BELLY.");
     }
 
     // ---------------------------------------------------
@@ -1009,8 +1097,6 @@ public final class EventSequenceManager {
 
     /**
      * Schedule a delayed teleport specifically for belly captures.
-     * Uses its own delay constant so we can tune it independently
-     * from other stage transitions.
      */
     private void scheduleBellyTeleport(UUID uuid, Location target) {
         if (target == null) {
@@ -1025,9 +1111,6 @@ public final class EventSequenceManager {
         }, BELLY_TELEPORT_DELAY_TICKS);
     }
 
-    /**
-     * Decide where to send players when the INITIAL stage begins.
-     */
     private static Location resolveInitialStageSpawn(EventModel event) {
         EventModel.StageArea initialArea = event.stageAreaOrNull(EventStageKey.INITIAL);
         if (initialArea != null) {
@@ -1036,9 +1119,6 @@ public final class EventSequenceManager {
         return event.dragonSpawn();
     }
 
-    /**
-     * Decide where to send players when they are pulled into IN_BELLY.
-     */
     private static Location resolveInBellyStageSpawn(EventModel event) {
         EventModel.StageArea bellyArea = event.stageAreaOrNull(EventStageKey.IN_BELLY);
         if (bellyArea != null) {
@@ -1047,9 +1127,6 @@ public final class EventSequenceManager {
         return event.dragonSpawn();
     }
 
-    /**
-     * Decide where to send players when they leave IN_BELLY and enter POST_BELLY.
-     */
     private static Location resolvePostBellyStageSpawn(EventModel event) {
         EventModel.StageArea postBellyArea = event.stageAreaOrNull(EventStageKey.POST_BELLY);
         if (postBellyArea != null) {
@@ -1058,9 +1135,6 @@ public final class EventSequenceManager {
         return event.dragonSpawn();
     }
 
-    /**
-     * Decide where to send players when FINAL stage begins.
-     */
     private static Location resolveFinalStageSpawn(EventModel event) {
         EventModel.StageArea finalArea = event.stageAreaOrNull(EventStageKey.FINAL);
         if (finalArea != null) {
@@ -1088,35 +1162,63 @@ public final class EventSequenceManager {
     }
 
     /**
-     * Execute a batch of console commands safely.
-     */
-    private void executeCommands(List<String> commands) {
-        if (commands == null || commands.isEmpty()) return;
-
-        for (String raw : commands) {
-            if (raw == null) continue;
-            String cmd = raw.trim();
-            if (cmd.isEmpty()) continue;
-
-            try {
-                Bukkit.dispatchCommand(Bukkit.getConsoleSender(), cmd);
-            } catch (Exception ex) {
-                plugin.getLogger().log(
-                        Level.WARNING,
-                        "Failed to execute event command: \"" + cmd + "\"",
-                        ex
-                );
-            }
-        }
-    }
-
-    /**
      * Broadcast a user message model (with placeholders) to all online players.
      */
     private void broadcastUserMessage(UserMessageModels model, Map<String, String> placeholders) {
         for (Player player : Bukkit.getOnlinePlayers()) {
             MessageResponseManager.send(player, model, placeholders);
         }
+    }
+
+    /**
+     * Global result helper: victory/defeat broadcast.
+     */
+    private void broadcastEventResult(EventModel event, boolean victory) {
+        UserMessageModels model = victory
+                ? UserMessageModels.EVENT_WIN
+                : UserMessageModels.EVENT_DEFEAT;
+
+        Map<String, String> placeholders = new HashMap<>();
+        placeholders.put("event", event.displayName());
+        placeholders.put("eventName", event.displayName());
+
+        broadcastUserMessage(model, placeholders);
+    }
+
+    /**
+     * Early defeat detection.
+     */
+    private void checkForEarlyDefeat(EventModel event, ScheduledRun run) {
+        if (event == null || run == null) {
+            return;
+        }
+        if (run.resultResolved) {
+            return;
+        }
+
+        // Only consider defeat for a "live" run
+        if (!run.joinWindowOpened || !run.joinWindowClosed) {
+            return;
+        }
+
+        // Only consider defeat while we're in a combat-related stage (not LOBBY)
+        EventStageKey current = event.currentStageKey();
+        if (current == null || current == EventStageKey.LOBBY) {
+            return;
+        }
+
+        // If boss already spawned, let the normal completion logic own the result.
+        if (run.bossSpawned) {
+            return;
+        }
+
+        Collection<UUID> participants = event.participantsSnapshot();
+        if (participants != null && !participants.isEmpty()) {
+            return;
+        }
+
+        // No participants left pre-completion → defeat.
+        handleEarlyDefeat(event, run);
     }
 
     // ---------------------------------------------------
@@ -1245,9 +1347,9 @@ public final class EventSequenceManager {
         }
     }
 
-    // ---------------------------------------------------
-    // ScheduledRun (per-event runtime state)
-    // ---------------------------------------------------
+// ---------------------------------------------------
+// ScheduledRun (per-event runtime state)
+// ---------------------------------------------------
 
     private static final class ScheduledRun {
 
@@ -1279,8 +1381,15 @@ public final class EventSequenceManager {
         final Set<UUID> inBellyParticipants = ConcurrentHashMap.newKeySet();
         final Map<UUID, Set<UUID>> bellyPlayersByDragon = new ConcurrentHashMap<>();
 
+        // Max players any single dragon is allowed to eat during this run.
+        // Computed on first belly trigger and reused thereafter.
+        Integer bellyPlayersPerDragon = null;
+
         // FINAL stage / boss tracking
         boolean bossSpawned = false;
+
+        // Result guard: once true, victory/defeat has been resolved.
+        boolean resultResolved = false;
 
         private ScheduledRun(Instant startInstant,
                              Instant joinWindowEndInstant,
@@ -1320,7 +1429,6 @@ public final class EventSequenceManager {
             // Compute when this event run should fully end, based on maxDuration
             Duration maxDuration = event.maxDuration();
             if (maxDuration == null || maxDuration.isZero() || maxDuration.isNegative()) {
-                // Safety: ensure we don't instantly mark it complete
                 maxDuration = Duration.ofMinutes(1);
             }
             Instant runEnd = start.plus(maxDuration);
@@ -1354,7 +1462,7 @@ public final class EventSequenceManager {
 
             for (Reminder r : preStartReminders) {
                 if (r.fired) continue;
-                if (!now.isBefore(r.fireInstant)) { // fireInstant <= now
+                if (!now.isBefore(r.fireInstant)) {
                     latestDue = r;
                 }
             }
@@ -1664,8 +1772,9 @@ public final class EventSequenceManager {
                 mgr.trackDragon(event, dragon);
             }
 
-            plugin.getLogger().info("[ConquestDragons] Boss dragon '" + bossId
-                    + "' spawned for event '" + event.id() + "'.");
+            // DEBUG:
+            // plugin.getLogger().info("[ConquestDragons] Boss dragon '" + bossId
+            //         + "' spawned for event '" + event.id() + "'.");
         } catch (Exception ex) {
             plugin.getLogger().log(
                     Level.WARNING,
@@ -1673,6 +1782,80 @@ public final class EventSequenceManager {
                             "' for event '" + event.id() + "'.",
                     ex
             );
+        }
+    }
+
+    /**
+     * Execute a batch of commands in the context of a specific event + stage.
+     */
+    private void executeStageCommands(EventModel event,
+                                      EventStageKey stageKey,
+                                      List<String> commands) {
+        if (event == null || stageKey == null || commands == null || commands.isEmpty()) {
+            return;
+        }
+
+        // Determine target UUIDs for {player} expansion
+        Collection<UUID> targetUuids = null;
+
+        // Prefer stage-specific subsets where it makes sense
+        if (stageKey == EventStageKey.IN_BELLY) {
+            ScheduledRun run = runsByEventId.get(event.id());
+            if (run != null && !run.inBellyParticipants.isEmpty()) {
+                targetUuids = new ArrayList<>(run.inBellyParticipants);
+            }
+        }
+
+        // Fallback: all participants of the event
+        if (targetUuids == null) {
+            Collection<UUID> participants = event.participantsSnapshot();
+            if (participants != null && !participants.isEmpty()) {
+                targetUuids = new ArrayList<>(participants);
+            }
+        }
+
+        for (String raw : commands) {
+            if (raw == null) continue;
+            String cmd = raw.trim();
+            if (cmd.isEmpty()) continue;
+
+            // If command does not contain {player}, run once globally
+            if (!cmd.contains("{player}")) {
+                try {
+                    Bukkit.dispatchCommand(Bukkit.getConsoleSender(), cmd);
+                } catch (Exception ex) {
+                    plugin.getLogger().log(
+                            Level.WARNING,
+                            "Failed to execute event command: \"" + cmd + "\"",
+                            ex
+                    );
+                }
+                continue;
+            }
+
+            // Commands WITH {player} but no targets → just skip quietly
+            if (targetUuids == null || targetUuids.isEmpty()) {
+                plugin.getLogger().fine("[ConquestDragons] Skipping {player} command with no targets: " + cmd);
+                continue;
+            }
+
+            // Per-player expansion
+            for (UUID uuid : targetUuids) {
+                Player p = Bukkit.getPlayer(uuid);
+                if (p == null || !p.isOnline()) continue;
+
+                String perPlayerCmd = cmd.replace("{player}", p.getName());
+                try {
+                    Bukkit.dispatchCommand(Bukkit.getConsoleSender(), perPlayerCmd);
+                } catch (Exception ex) {
+                    plugin.getLogger().log(
+                            Level.WARNING,
+                            "Failed to execute per-player event command for " + p.getName()
+                                    + ": \"" + perPlayerCmd + "\"",
+                            ex
+                    );
+                }
+            }
         }
     }
 
