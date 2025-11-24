@@ -374,41 +374,6 @@ event:
         - "title @a clear"
 
 
-  # ---------------------------------------------------
-  # STAGES (LOGIC PHASES, NOT GEOMETRY)
-  # These map directly to EventStageKey values.
-  # Geometry comes from stage-areas above.
-  # ---------------------------------------------------
-  stages:
-
-    # ================================================
-    # 0) LOBBY STAGE - PRE-COMBAT WAITING ROOM
-    # ================================================
-    - key: LOBBY
-
-      start-commands:
-        - "say [DRAGON EVENT] The ritual will begin soon!"
-        - "title @a title {\"text\":\"Ritual of the Devourer\",\"color\":\"gold\"}"
-        - "title @a subtitle {\"text\":\"Prepare yourselves...\",\"color\":\"dark_purple\"}"
-
-      timed-commands:
-        - delay-ticks: 200
-          commands:
-            - "say [DRAGON EVENT] The air crackles with anticipation..."
-
-        - delay-ticks: 400
-          commands:
-            - "say [DRAGON EVENT] The dragons stir in the distance..."
-
-      # NEW — REPEATING stage message (0 delay-ticks = disabled)
-      repeat-message:
-        delay-ticks: 300
-
-      end-commands:
-        - "say [DRAGON EVENT] The ritual begins now!"
-        - "title @a clear"
-
-
     # ================================================
     # 1) INITIAL STAGE - NORMAL DRAGON FIGHT
     # ================================================

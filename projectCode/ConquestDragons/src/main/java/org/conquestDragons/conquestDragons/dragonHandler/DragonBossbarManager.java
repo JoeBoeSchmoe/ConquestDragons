@@ -47,7 +47,7 @@ import java.util.logging.Level;
  *    (or to all participants if no region configured).
  *  - Update glow color (via scoreboard team color) based on remaining health.
  *  - Notify EventSequenceManager when:
- *      • a dragon crosses belly trigger health
+ *      • total INITIAL dragon HP crosses the event's belly trigger threshold
  *      • ANY tracked dragon dies (to free eaten players & possibly start FINAL)
  *
  * IMPORTANT:
@@ -86,6 +86,7 @@ public final class DragonBossbarManager implements Listener {
         }
         INSTANCE.stopTickTask();
         INSTANCE.clearAll();
+        INSTANCE.bellyTriggerFiredEvents.clear();
         INSTANCE.plugin.getLogger().info("✅  DragonBossbarManager stopped.");
         INSTANCE = null;
     }
@@ -98,6 +99,13 @@ public final class DragonBossbarManager implements Listener {
 
     private final ConquestDragons plugin;
     private final ConcurrentMap<UUID, TrackedDragon> tracked = new ConcurrentHashMap<>();
+
+    /**
+     * Tracks whether the belly trigger has already fired for a given event id
+     * during the current run of that event.
+     */
+    private final ConcurrentMap<String, Boolean> bellyTriggerFiredEvents = new ConcurrentHashMap<>();
+
     private BukkitTask tickTask;
 
     private DragonBossbarManager(ConquestDragons plugin) {
@@ -118,6 +126,13 @@ public final class DragonBossbarManager implements Listener {
         }
 
         UUID id = dragon.getUniqueId();
+
+        // If this is the first INITIAL-stage dragon for this event in a new run,
+        // reset the event-level belly trigger so it can fire again.
+        if (event.currentStageKey() == EventStageKey.INITIAL
+                && countActiveDragonsForEvent(event) == 0) {
+            bellyTriggerFiredEvents.remove(event.id());
+        }
 
 //        plugin.getLogger().info("[ConquestDragons] [DragonBossbarManager] trackDragon called for event="
 //                + event.id() + ", stage=" + event.currentStageKey()
@@ -180,6 +195,7 @@ public final class DragonBossbarManager implements Listener {
             }
         }
         tracked.clear();
+        bellyTriggerFiredEvents.clear();
     }
 
     private void tick() {
@@ -262,16 +278,35 @@ public final class DragonBossbarManager implements Listener {
         updateViewers(td);
         updateGlowColor(td, fraction);
 
-        // 🔥 Belly trigger detection (once per dragon)
-        double trigger = td.event.bellyTriggerHealthFraction();
-        if (!td.bellyTriggerFired && trigger > 0.0 && trigger < 1.0 && fraction <= trigger) {
-            td.bellyTriggerFired = true;
-//            plugin.getLogger().info("[ConquestDragons] [DragonBossbarManager] Belly trigger fired for dragon "
-//                    + dragon.getUniqueId() + " (event=" + td.event.id()
-//                    + ", fraction=" + fraction + ", trigger=" + trigger + ")");
-            EventSequenceManager mgr = EventSequenceManager.getInstance();
-            if (mgr != null) {
-                mgr.onDragonBellyTrigger(td.event, dragon, fraction);
+        // 🔥 Belly trigger detection (event-level, based on combined INITIAL dragons HP)
+        EventModel event = td.event;
+        EventStageKey stage = event.currentStageKey();
+
+        // Only consider belly trigger in INITIAL / POST_BELLY style combat phases
+        if (stage == EventStageKey.INITIAL || stage == EventStageKey.POST_BELLY) {
+            double trigger = event.bellyTriggerHealthFraction();
+            if (trigger > 0.0 && trigger < 1.0) {
+                String eventId = event.id();
+                boolean alreadyFired = bellyTriggerFiredEvents.getOrDefault(eventId, false);
+
+                if (!alreadyFired) {
+                    double combinedFraction = computeCombinedHealthFraction(event);
+
+                    if (combinedFraction <= trigger) {
+                        bellyTriggerFiredEvents.put(eventId, true);
+
+//                        plugin.getLogger().info("[ConquestDragons] [DragonBossbarManager] Belly trigger fired for event "
+//                                + eventId + " (stage=" + stage
+//                                + ", combinedFraction=" + combinedFraction
+//                                + ", trigger=" + trigger + ")");
+
+                        EventSequenceManager mgr = EventSequenceManager.getInstance();
+                        if (mgr != null) {
+                            // Pass the dragon that "noticed" the threshold and the combined fraction.
+                            mgr.onDragonBellyTrigger(event, dragon, combinedFraction);
+                        }
+                    }
+                }
             }
         }
     }
@@ -550,6 +585,57 @@ public final class DragonBossbarManager implements Listener {
         return count;
     }
 
+    /**
+     * Compute the combined HP fraction for all active dragons of this event
+     * during the INITIAL/POST_BELLY combat phases:
+     *
+     *   totalCurrentHP / totalMaxHP
+     */
+    private double computeCombinedHealthFraction(EventModel event) {
+        if (event == null) {
+            return 1.0;
+        }
+
+        EventStageKey stage = event.currentStageKey();
+        // Only meaningful in these stages; otherwise treat as "full".
+        if (stage != EventStageKey.INITIAL && stage != EventStageKey.POST_BELLY) {
+            return 1.0;
+        }
+
+        String eventId = event.id();
+        double totalCurrent = 0.0;
+        double totalMax = 0.0;
+
+        for (TrackedDragon td : tracked.values()) {
+            if (td.event == null || !td.event.id().equals(eventId)) {
+                continue;
+            }
+
+            EnderDragon d = td.dragon;
+            if (d == null || d.isDead() || !d.isValid()) {
+                continue;
+            }
+
+            double max = td.maxHealth;
+            if (max <= 0.0) {
+                AttributeInstance attr = d.getAttribute(Attribute.MAX_HEALTH);
+                max = (attr != null) ? attr.getValue() : d.getHealth();
+                if (max <= 0.0) {
+                    max = 1.0;
+                }
+            }
+
+            double current = Math.max(0.0, Math.min(d.getHealth(), max));
+            totalCurrent += current;
+            totalMax += max;
+        }
+
+        if (totalMax <= 0.0) {
+            return 1.0;
+        }
+        return totalCurrent / totalMax;
+    }
+
     // ---------------------------------------------------
     // Shared band resolver
     // ---------------------------------------------------
@@ -627,6 +713,7 @@ public final class DragonBossbarManager implements Listener {
                 };
         }
     }
+
     public EventModel findEventForDragon(UUID dragonId) {
         if (dragonId == null) {
             return null;
@@ -656,7 +743,6 @@ public final class DragonBossbarManager implements Listener {
 
         return td.event;
     }
-
 
     // ---------------------------------------------------
     // Glow band mapping (from band index)
@@ -722,7 +808,7 @@ public final class DragonBossbarManager implements Listener {
 
         BarColor currentColor;
         String currentGlowBand;
-        boolean bellyTriggerFired;
+        boolean bellyTriggerFired; // no longer used for logic, kept for backwards compatibility if needed
 
         TrackedDragon(EventModel event,
                       EnderDragon dragon,
